@@ -39,7 +39,8 @@
     "lib/types/index.d.ts",
     "lib/types/client.d.ts",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "README.zh.md"
   ],
   "dsh": {
     "bundle": {

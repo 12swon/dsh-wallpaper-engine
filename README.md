@@ -1,8 +1,10 @@
 # dsh-wallpaper-engine
 
+[English](README.md) | [中文](README.zh.md)
+
 A DSH bundle that turns your **Wallpaper Engine** wallpapers into the **background of the DSH web GUI** (`dsh web`).
 
-It discovers the Wallpaper Engine install on your machine, lists its wallpapers, and renders the *portable* ones (Video `.mp4` and Web/HTML) behind the DSH chat interface. You pick the wallpaper from a settings row and can pause/clear it.
+It discovers the Wallpaper Engine install on your machine, lists its wallpapers, and renders the *portable* ones (Video `.mp4` and Web/HTML) behind the DSH chat interface with an iOS-style **liquid glass** effect. You pick the wallpaper from a settings row, fine-tune it with four sliders, and pause/clear it anytime.
 
 ## Why only Video and Web wallpapers?
 
@@ -60,6 +62,24 @@ via `libraryfolders.vdf`. Nothing further is required.
 4. Use **暂停/播放** to pause a video wallpaper, and **关闭** to clear it.
    The choice is remembered in your browser's `localStorage` (key
    `dsh-wallpaper-engine:selection`).
+
+### The four sliders
+
+While a wallpaper is active, four sliders let you tune how it blends with the UI:
+
+| Slider | What it controls | Range | Default |
+|---|---|---|---|
+| **壁纸模糊** (wallpaper blur) | Blurs the wallpaper itself | 0–60 px | 0 |
+| **暗化** (scrim) | Darkens the overlay between wallpaper and text | 0–90 % | 25 % |
+| **边框** (border) | Raises border/divider contrast | 0–90 % | 35 % |
+| **玻璃** (glass) | Blur radius of the frosted-glass panels (composer, bubbles) | 0–40 px | 24 |
+
+> **Light vs. dark mode** — Wallpapers differ wildly in colour and brightness, so
+> there is no one mode that fits every wallpaper. Switch DSH's theme between
+> **light** and **dark** to find which suits the current wallpaper. If text or
+> hairlines become hard to read on a bright or busy wallpaper, raise the
+> **暗化 / 边框** sliders (and optionally add a little **壁纸模糊**) until it is
+> comfortable. All four sliders apply instantly — no page refresh needed.
 
 ## Configuration
 
