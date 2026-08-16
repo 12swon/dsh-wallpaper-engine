@@ -40,13 +40,39 @@ so you can see what you have, but they cannot be used as a live background here.
 
 ## Install
 
-```sh
-# from a local checkout of this bundle
-dsh plugin --profile web add file:<absolute-path-to>/dsh-wallpaper-engine
+**Published (recommended)** — once the package is on the npm registry:
 
-# (or, once published)
+```sh
 dsh plugin --profile web add dsh-wallpaper-engine
 ```
+
+**Local development** — from a checkout of this repo, `link:` the local directory
+(the absolute path is the folder that contains this `package.json` — the one with
+`lib/`, `src/`, and `cordis.patch.yml` inside):
+
+```sh
+dsh plugin --profile web add link:D:\path\to\dsh-wallpaper-engine
+```
+
+> **What exactly is the "absolute path" here?**
+> It is the **full folder path of your plugin checkout** — the directory that
+> contains `package.json` itself, *not* the path to `package.json` or to any
+> individual file inside it. It is the same value you would paste into File
+> Explorer's address bar to open that folder.
+>
+> For example, if this repo is at `D:\dev\dsh-wallpaper-engine`, run:
+> `dsh plugin --profile web add link:D:\dev\dsh-wallpaper-engine`.
+>
+> On Linux/macOS it looks the same: `dsh plugin --profile web add link:/home/you/dsh-wallpaper-engine`,
+> or a relative path if you are already inside the parent folder: `link:./dsh-wallpaper-engine`.
+>
+> `dsh` forwards the argument verbatim to `pnpm`, so the path must point at the
+> **checkout directory itself** (where `dsh.bundle` is declared in `package.json`).
+
+> Why `link:` and not `file:`? `link:` creates a junction to the live source
+> folder, so edits to `src/client.js` + `npm run build` are reflected without
+> reinstalling; `file:` packs a snapshot instead, which is fine but requires a
+> re-add after every change. Either works for a first install.
 
 Then restart `dsh web`. The host plugin becomes a bundle layer and the client
 plugin auto-loads (`dsh.client.immediately: true`).

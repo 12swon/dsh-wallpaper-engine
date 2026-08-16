@@ -32,13 +32,31 @@ Wallpaper Engine 的壁纸分四种类型：
 
 ## 安装
 
-```sh
-# 从本地 checkout 安装
-dsh plugin --profile web add file:<绝对路径>/dsh-wallpaper-engine
+**发布后（推荐）**——包上线到 npm 后：
 
-# （或发布后）
+```sh
 dsh plugin --profile web add dsh-wallpaper-engine
 ```
+
+**本地开发**——从本仓库 checkout，用 `link:` 指向本地目录（这个绝对路径就是**包含 `package.json` 的那个文件夹**）：
+
+```sh
+dsh plugin --profile web add link:D:\path\to\dsh-wallpaper-engine
+```
+
+> **这里说的"绝对路径"到底指什么？**
+> 它指的是你**插件 checkout 所在的完整文件夹路径**——也就是**文件夹里带着 `package.json` 的那个目录**，*不是* `package.json` 文件本身的路径，也不是它内部某个文件的路径。你可以直接把这个路径理解为「打开该文件夹时，资源管理器地址栏显示的那一串路径」。
+>
+> 换句话说：**绝对路径 = 这个插件的代码文件夹在哪**，把那一整串路径填进去即可。
+>
+> 举例：如果仓库在 `D:\dev\dsh-wallpaper-engine`，就运行：
+> `dsh plugin --profile web add link:D:\dev\dsh-wallpaper-engine`。
+>
+> Linux/macOS 也一样：`dsh plugin --profile web add link:/home/你/dsh-wallpaper-engine`，如果你已经 `cd` 到它的上级目录，也可以用相对路径 `link:./dsh-wallpaper-engine`。
+>
+> `dsh` 会把参数原样转发给 `pnpm`，所以路径必须指向**仓库目录本身**（也就是 `package.json` 里声明了 `dsh.bundle` 的那个目录）。
+
+> 为什么用 `link:` 而不是 `file:`？`link:` 会创建指向**源目录**的 junction，改完 `src/client.js` 并 `npm run build` 后无需重新安装即可生效；`file:` 则打包成一份快照，每次改动都要重新 add。首次安装两者都可以。
 
 然后重启 `dsh web`。host 端会成为 bundle 层，client 端会自动加载（`dsh.client.immediately: true`）。
 
