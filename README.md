@@ -1,4 +1,4 @@
-# dsh-wallpaper-engine
+# dsh-plugin-wallpaper-engine
 
 [English](README.md) | [中文](README.zh.md)
 
@@ -40,39 +40,72 @@ so you can see what you have, but they cannot be used as a live background here.
 
 ## Install
 
-**Published (recommended)** — once the package is on the npm registry:
+### For users (published version, recommended)
+
+If you simply want to use the plugin, install the published package from npm:
 
 ```sh
-dsh plugin --profile web add dsh-wallpaper-engine
+dsh plugin --profile web add dsh-plugin-wallpaper-engine
 ```
 
-**Local development** — from a checkout of this repo, `link:` the local directory
-(the absolute path is the folder that contains this `package.json` — the one with
-`lib/`, `src/`, and `cordis.patch.yml` inside):
+Then restart `dsh web` and open **Settings → General → Wallpaper Engine**.
+
+### For developers (running your own copy)
+
+**For most people you can skip this section.** You only need it if you want to
+work on the plugin's code yourself. The steps below assume you know what a command
+line and a *repository* (a code folder that is under Git version control) are.
+
+**1. Get the code (`checkout`)**
+
+> *What "checkout" means:* it just means "download/get a copy of the source code
+> into a folder on your machine." Typically you click **Code → Download ZIP** on
+> this GitHub page and unzip it, or clone it with Git:
+>
+> ```sh
+> git clone https://github.com/elysia395/dsh-wallpaper-engine.git
+> ```
+>
+> After this you have a folder that contains `package.json`, `lib/`, `src/`, and
+> `cordis.patch.yml`. That folder is what the rest of this section calls
+> **the plugin folder**.
+
+**2. Install it using its folder path (`link:`)**
+
+> *What `link:` means here:* it tells `dsh` (which forwards the command to `pnpm`)
+> to make a *link* to your local plugin folder instead of downloading a package
+> from the internet. The benefit: when you edit the code and rebuild, the change
+> shows up without reinstalling.
+
+Replace `<插件文件夹绝对路径>` below with the **full path of your plugin folder**
+(the "address bar" path you see when you open that folder in Explorer / your file
+manager):
 
 ```sh
-dsh plugin --profile web add link:D:\path\to\dsh-wallpaper-engine
+dsh plugin --profile web add link:<插件文件夹绝对路径>
 ```
 
-> **What exactly is the "absolute path" here?**
-> It is the **full folder path of your plugin checkout** — the directory that
-> contains `package.json` itself, *not* the path to `package.json` or to any
-> individual file inside it. It is the same value you would paste into File
-> Explorer's address bar to open that folder.
->
-> For example, if this repo is at `D:\dev\dsh-wallpaper-engine`, run:
-> `dsh plugin --profile web add link:D:\dev\dsh-wallpaper-engine`.
->
-> On Linux/macOS it looks the same: `dsh plugin --profile web add link:/home/you/dsh-wallpaper-engine`,
-> or a relative path if you are already inside the parent folder: `link:./dsh-wallpaper-engine`.
->
-> `dsh` forwards the argument verbatim to `pnpm`, so the path must point at the
-> **checkout directory itself** (where `dsh.bundle` is declared in `package.json`).
+**Concrete example** — if your plugin folder is at a path like `D:\dev\dsh-wallpaper-engine`:
 
-> Why `link:` and not `file:`? `link:` creates a junction to the live source
-> folder, so edits to `src/client.js` + `npm run build` are reflected without
-> reinstalling; `file:` packs a snapshot instead, which is fine but requires a
-> re-add after every change. Either works for a first install.
+```sh
+dsh plugin --profile web add link:D:\dev\dsh-wallpaper-engine
+```
+
+You can also use a relative path if your shell's current directory is already the
+folder's parent:
+
+```sh
+dsh plugin --profile web add link:./dsh-wallpaper-engine
+```
+
+> **Which exact path to fill in?** It must be the **folder that contains
+> `package.json`** — not the path to `package.json` itself, and not any file inside.
+> It is the same value you would paste into Explorer's address bar to open that folder.
+
+> Why prefer `link:` over `file:`? `link:` creates a live link to your source
+> folder, so edits to `src/client.js` + `npm run build` take effect without
+> reinstalling; `file:` packs a static snapshot, which needs a re-add after every
+> change. Both work for a first install.
 
 Then restart `dsh web`. The host plugin becomes a bundle layer and the client
 plugin auto-loads (`dsh.client.immediately: true`).

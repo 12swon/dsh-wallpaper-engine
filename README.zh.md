@@ -1,4 +1,4 @@
-# dsh-wallpaper-engine
+# dsh-plugin-wallpaper-engine
 
 [English](README.md) | [中文](README.zh.md)
 
@@ -32,31 +32,55 @@ Wallpaper Engine 的壁纸分四种类型：
 
 ## 安装
 
-**发布后（推荐）**——包上线到 npm 后：
+### 普通用户（安装已发布版本，推荐）
+
+如果你只是想用这个插件，直接装 npm 上已发布的包即可：
 
 ```sh
-dsh plugin --profile web add dsh-wallpaper-engine
+dsh plugin --profile web add dsh-plugin-wallpaper-engine
 ```
 
-**本地开发**——从本仓库 checkout，用 `link:` 指向本地目录（这个绝对路径就是**包含 `package.json` 的那个文件夹**）：
+装完重启 `dsh web`，打开 **设置 → General → Wallpaper Engine** 就能用。
+
+### 开发者（运行你本地的一份代码）
+
+**大多数读者可以跳过本节。** 只有当你打算自己改这个插件的代码时才需要。下面的步骤假定你已了解命令行、以及「仓库 / repository」是什么（一份用 Git 做版本管理的代码文件夹）。
+
+**第 1 步：取得源码（checkout）**
+
+> 这里 *checkout* 的意思很简单：就是「把源代码下载/复制一份到你电脑的某个文件夹里」。通常在这个 GitHub 页面点 **Code → Download ZIP** 下载并解压，或用 Git 克隆：
+>
+> ```sh
+> git clone https://github.com/elysia395/dsh-wallpaper-engine.git
+> ```
+>
+> 完成后你会得到一个包含 `package.json`、`lib/`、`src/`、`cordis.patch.yml` 的文件夹。下文把这个文件夹称作**插件文件夹**。
+
+**第 2 步：用文件夹路径安装（link:）**
+
+> 这里的 *`link:`* 表示：告诉 `dsh`（它会把命令转发给 pnpm）去**连接你本地那个插件文件夹**，而不是从网上下载一个包。好处是：你改完代码并重新构建后，改动能直接生效，不用反复重装。
+
+把下面命令里的 `<插件文件夹绝对路径>` **替换成你插件文件夹的完整路径**（就是你在资源管理器/文件管理器里打开那个文件夹时，地址栏显示的那串路径）：
 
 ```sh
-dsh plugin --profile web add link:D:\path\to\dsh-wallpaper-engine
+dsh plugin --profile web add link:<插件文件夹绝对路径>
 ```
 
-> **这里说的"绝对路径"到底指什么？**
-> 它指的是你**插件 checkout 所在的完整文件夹路径**——也就是**文件夹里带着 `package.json` 的那个目录**，*不是* `package.json` 文件本身的路径，也不是它内部某个文件的路径。你可以直接把这个路径理解为「打开该文件夹时，资源管理器地址栏显示的那一串路径」。
->
-> 换句话说：**绝对路径 = 这个插件的代码文件夹在哪**，把那一整串路径填进去即可。
->
-> 举例：如果仓库在 `D:\dev\dsh-wallpaper-engine`，就运行：
-> `dsh plugin --profile web add link:D:\dev\dsh-wallpaper-engine`。
->
-> Linux/macOS 也一样：`dsh plugin --profile web add link:/home/你/dsh-wallpaper-engine`，如果你已经 `cd` 到它的上级目录，也可以用相对路径 `link:./dsh-wallpaper-engine`。
->
-> `dsh` 会把参数原样转发给 `pnpm`，所以路径必须指向**仓库目录本身**（也就是 `package.json` 里声明了 `dsh.bundle` 的那个目录）。
+**具体示例**——假设你的插件文件夹路径像 `D:\dev\dsh-wallpaper-engine` 这样：
 
-> 为什么用 `link:` 而不是 `file:`？`link:` 会创建指向**源目录**的 junction，改完 `src/client.js` 并 `npm run build` 后无需重新安装即可生效；`file:` 则打包成一份快照，每次改动都要重新 add。首次安装两者都可以。
+```sh
+dsh plugin --profile web add link:D:\dev\dsh-wallpaper-engine
+```
+
+如果你已经用命令行 `cd` 到了插件文件夹的上一级，也可以用相对路径：
+
+```sh
+dsh plugin --profile web add link:./dsh-wallpaper-engine
+```
+
+> **该填哪个确切的路径？** 必须是**包含 `package.json` 的那个文件夹**——不是 `package.json` 文件本身的路径，也不是它里面任何单个文件的路径。它就是你在资源管理器地址栏里打开那个文件夹时显示的那串路径。
+
+> 为什么推荐 `link:` 而不用 `file:`？`link:` 是和你的源码文件夹**建立实时连接**，改完 `src/client.js` 并 `npm run build` 后直接生效，无需重装；`file:` 则是打包成一份静态快照，每次改动都要重新 add。首次安装两者都可以。
 
 然后重启 `dsh web`。host 端会成为 bundle 层，client 端会自动加载（`dsh.client.immediately: true`）。
 
