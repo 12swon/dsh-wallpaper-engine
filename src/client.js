@@ -394,27 +394,33 @@ const CSS = `
          wallpaper colour melts into a soft glow instead of a gray smear;
        - a light, low-alpha base (not a dark one) so the wallpaper shows through;
        - a 1px top highlight (refraction edge) + soft shadow for "thick glass";
-       - blur radius + saturation both scale off --we-blur / --we-saturate. */
-  body[data-we-wallpaper] .uV2eYG_card,
-  body[data-we-wallpaper] .gdEzaW_bubble {
+       - blur radius + saturation both scale off --we-blur / --we-saturate.
+
+     Transparency is driven through the design tokens the surfaces already read
+     (--dsw-specific-input-major on the composer card, --dsw-specific-bubble on
+     message bubbles) rather than through class selectors: CSS-module class
+     names are build hashes and change whenever the shell frontend is rebuilt,
+     which silently kills the effect. backdrop-filter cannot be expressed as a
+     token, so the blur itself still needs an element selector — [data-composer-card]
+     is authored in the shell source and survives rebuilds. Bubbles carry no such
+     attribute, so they fall back to the module-CSS suffix convention; if that
+     ever stops matching the bubble stays translucent, just without the blur. */
+  body[data-we-wallpaper] {
+    --dsw-specific-input-major: rgba(255, 255, 255, 0.18);
+    --dsw-specific-bubble: rgba(255, 255, 255, 0.14);
+  }
+  body[data-ds-dark-theme][data-we-wallpaper] {
+    --dsw-specific-input-major: rgba(255, 255, 255, 0.07);
+    --dsw-specific-bubble: rgba(255, 255, 255, 0.06);
+  }
+  body[data-we-wallpaper] [data-composer-card],
+  body[data-we-wallpaper] [class*="_bubble"] {
     -webkit-backdrop-filter: blur(var(--we-blur, 24px)) saturate(var(--we-saturate, 1.8)) brightness(1.08);
     backdrop-filter: blur(var(--we-blur, 24px)) saturate(var(--we-saturate, 1.8)) brightness(1.08);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, var(--we-glass-highlight, 0.3)),
       inset 0 -1px 0 rgba(255, 255, 255, 0.05),
       0 8px 32px rgba(0, 0, 0, var(--we-glass-shadow, 0.14));
-  }
-  body[data-we-wallpaper] .uV2eYG_card {
-    background: rgba(255, 255, 255, 0.18);
-  }
-  body[data-ds-dark-theme][data-we-wallpaper] .uV2eYG_card {
-    background: rgba(255, 255, 255, 0.07);
-  }
-  body[data-we-wallpaper] .gdEzaW_bubble {
-    background: rgba(255, 255, 255, 0.14);
-  }
-  body[data-ds-dark-theme][data-we-wallpaper] .gdEzaW_bubble {
-    background: rgba(255, 255, 255, 0.06);
   }
 
   /* Picker chrome. */
