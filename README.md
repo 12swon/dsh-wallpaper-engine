@@ -122,11 +122,11 @@ via `libraryfolders.vdf`. Nothing further is required.
    The choice is remembered in your browser's `localStorage` (key
    `dsh-wallpaper-engine:selection`).
 
-### Automatic rotation
+### Automatic rotation (轮播列表)
 
-Select a Wallpaper Engine playlist first, then enable **自动轮转**. Rotation is scoped to that playlist; the plugin never silently adds the entire inventory. The interval can be set to 1, 5, 10, 30, 60, or 120 minutes; it is off by default. At least two playable Video/Web wallpapers are required, manual changes reset the next timer, and the playlist's random/sequential order is preserved. Scene and Application wallpapers cannot be embedded in the web UI, so they are automatically excluded from rotation while remaining visible in the picker as `[不可播放]`.
+Rotation runs over **user-defined carousel lists** (轮播列表). Create any number of lists with **新建**, pick Video/Web wallpapers into each from the inventory, give each list its own switch interval (1, 5, 10, 30, 60 or 120 minutes) and order (顺序/随机), then enable **自动轮转** on the list you want active. Lists are persisted in your browser's `localStorage` and are fully client-side — rotation never depends on Wallpaper Engine's own `config.json` playlist paths.
 
-Playlists are read from `config.json` in the Wallpaper Engine install directory, preferring saved `general.playlists` and falling back to the active monitor playlist when no saved list exists.
+At least two playable Video/Web wallpapers per list are required; manual changes reset the next timer; each list keeps its own cadence, so you can have one list switching every 5 minutes and another every 30. On first run, the first playable Wallpaper Engine playlist is imported automatically as a list so the feature works out of the box; **从 WE 播放列表导入** inside the editor imports any other playlist into the list being edited. Scene and Application wallpapers cannot be embedded in the web UI, so they are automatically excluded from rotation while remaining visible in the picker as `[不可播放]`.
 
 ### The four sliders
 

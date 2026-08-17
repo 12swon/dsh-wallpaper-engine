@@ -2,7 +2,8 @@
 // under the DSH module-loader contract. Exercises apply(), syncLayers(), and
 // confirms: wallpaper + scrim layers are `<body>` children (no shell.overlay),
 // the four effect knobs (wallpaper blur/scrim/border/glass blur) push CSS
-// variables, and rotation stays scoped to a playlist.
+// variables, the picker renders, and automatic rotation is scoped to a
+// user-defined rotation group (list) with its own interval.
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
@@ -42,9 +43,16 @@ const document = {
 };
 
 const localStorage = {
-  // Select a wallpaper and enable rotation; omit effect knobs so the new
-  // DEFAULTS (scrim 0.25, border 0.35, blur 24) should apply.
-  _store: { 'dsh-wallpaper-engine:selection': JSON.stringify({ id: 'a', playlistId: 'p1', rotationEnabled: true, rotationInterval: 5 }) },
+  // Select a wallpaper and enable rotation over a user-defined group; omit
+  // effect knobs so the new DEFAULTS (scrim 0.25, border 0.35, blur 24) apply.
+  _store: { 'dsh-wallpaper-engine:selection': JSON.stringify({
+    id: 'a',
+    rotationGroupId: 'g1',
+    rotationEnabled: true,
+    rotationGroups: [
+      { id: 'g1', name: 'My list', interval: 5, order: 'sequence', wallpaperIds: ['a', 'b', 'c'] },
+    ],
+  }) },
   getItem(k) { return this._store[k] ?? null; },
   setItem(k, v) { this._store[k] = v; },
 };
@@ -91,9 +99,10 @@ console.log('Symbol.toStringTag:', Object.prototype.toString.call(exportsObj));
 
 const registrations = [];
 const effects = [];
+const pickerRenders = [];
 const slots = {
   inject: (key, cb) => cb(),
-  register: (opts) => { registrations.push({ key: opts.name, id: opts.id, label: opts.label, order: opts.order }); },
+  register: (opts, render) => { registrations.push({ key: opts.name, id: opts.id, label: opts.label, order: opts.order }); pickerRenders.push(render); },
 };
 const ctx = { slots, effect(fn) { effects.push(fn); fn(); return fn; } };
 
@@ -123,6 +132,12 @@ setTimeout(() => {
       wrapTimer.fn();
       console.log('rotation wraps to id:', JSON.parse(localStorage._store['dsh-wallpaper-engine:selection']).id);
     }
+  }
+  console.log('picker renders:', pickerRenders.length > 0);
+  if (pickerRenders.length) {
+    let renderError = null;
+    try { pickerRenders[0](); } catch (e) { renderError = e && e.message; }
+    console.log('picker render threw:', renderError || '(none)');
   }
   console.log('effects ran:', effects.length);
   console.log('\nALL CLIENT CHECKS DONE');
