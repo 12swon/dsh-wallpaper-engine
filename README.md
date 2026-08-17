@@ -19,8 +19,8 @@ Wallpaper Engine wallpapers come in four types:
 
 This is the same fundamental limit that applies to **mineradio** and every other
 third-party Wallpaper Engine integration: only *Video* and *Web* wallpapers are
-portable. Scene wallpapers still show up in the picker (shown as `[不可播放]`)
-so you can see what you have, but they cannot be used as a live background here.
+portable. Scene wallpapers are therefore hidden from the thumbnail picker and
+rotation candidates — they cannot be used as a live background here.
 
 ## How it works
 
@@ -117,7 +117,7 @@ via `libraryfolders.vdf`. Nothing further is required.
 
 1. Open `dsh web` → the DSH GUI.
 2. Open **Settings → General** and find the **Wallpaper Engine** row.
-3. Pick a Video or Web wallpaper from the dropdown. It appears behind the app.
+3. Pick a Video or Web wallpaper from the thumbnail grid. It appears behind the app (Scene/Application wallpapers cannot be embedded in the web UI and are hidden from the grid).
 4. Use **暂停/播放** to pause a video wallpaper, and **关闭** to clear it.
    The choice is remembered in your browser's `localStorage` (key
    `dsh-wallpaper-engine:selection`).
@@ -126,7 +126,7 @@ via `libraryfolders.vdf`. Nothing further is required.
 
 Rotation runs over **user-defined carousel lists** (轮播列表). Create any number of lists with **新建**, pick Video/Web wallpapers into each from the inventory, give each list its own switch interval (1, 5, 10, 30, 60 or 120 minutes) and order (顺序/随机), then enable **自动轮转** on the list you want active. Lists are persisted in your browser's `localStorage` and are fully client-side — rotation never depends on Wallpaper Engine's own `config.json` playlist paths.
 
-At least two playable Video/Web wallpapers per list are required; manual changes reset the next timer; each list keeps its own cadence, so you can have one list switching every 5 minutes and another every 30. On first run, the first playable Wallpaper Engine playlist is imported automatically as a list so the feature works out of the box; **从 WE 播放列表导入** inside the editor imports any other playlist into the list being edited. Scene and Application wallpapers cannot be embedded in the web UI, so they are automatically excluded from rotation while remaining visible in the picker as `[不可播放]`.
+At least two playable Video/Web wallpapers per list are required; manual changes reset the next timer; each list keeps its own cadence, so you can have one list switching every 5 minutes and another every 30. On first run, the first playable Wallpaper Engine playlist is imported automatically as a list so the feature works out of the box; **从 WE 播放列表导入** inside the editor imports any other playlist into the list being edited. Scene and Application wallpapers cannot be embedded in the web UI, so they are automatically excluded from rotation and hidden from the picker.
 
 ### The four sliders
 
@@ -153,8 +153,9 @@ agent. All state is process-local/browser-local; no durable DSH settings are wri
 
 ## Limitations
 
-- Scene (native 3D) and Application wallpapers cannot be embedded; they appear as
-  `[不可播放]` in the picker. Their live render remains Wallpaper Engine's desktop job.
+- Scene (native 3D) and Application wallpapers cannot be embedded; they are hidden
+  from the thumbnail picker and rotation candidates. Their live render remains
+  Wallpaper Engine's desktop job.
 - The browser must be able to autoplay muted `<video>` (DSH runs on loopback; muted
   autoplay is allowed by modern browsers).
 - Media is served from your local Wallpaper Engine install paths; the host only

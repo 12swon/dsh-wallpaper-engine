@@ -12,7 +12,10 @@ const React = {
   useState: (init) => [init, () => {}],
   useEffect: () => {},
   useRef: (v) => ({ current: v }),
-  createElement: (type, props, ...children) => ({ type, props, children }),
+  // Minimal-but-real renderer: invoke function components so the picker tree
+  // actually materializes (descriptors only for host elements).
+  createElement: (type, props, ...children) =>
+    typeof type === 'function' ? type(props || {}) : ({ type, props: props || null, children }),
 };
 
 let byId = {};
@@ -136,8 +139,23 @@ setTimeout(() => {
   console.log('picker renders:', pickerRenders.length > 0);
   if (pickerRenders.length) {
     let renderError = null;
-    try { pickerRenders[0](); } catch (e) { renderError = e && e.message; }
+    let tree = null;
+    try { tree = pickerRenders[0](); } catch (e) { renderError = e && e.message; }
     console.log('picker render threw:', renderError || '(none)');
+    if (tree) {
+      // Thumbnail grid: only playable Video/Web wallpapers + the close card.
+      // Scene "c" must be filtered out entirely.
+      const cards = [];
+      (function walk(node) {
+        if (Array.isArray(node)) { node.forEach(walk); return; }
+        if (!node || typeof node !== 'object') return;
+        const cls = typeof node.props?.className === 'string' ? node.props.className : '';
+        if (cls === 'we-picker__card' || cls === 'we-picker__card we-picker__card--selected') cards.push(node);
+        if (Array.isArray(node.children)) node.children.forEach(walk);
+      })(tree);
+      console.log('grid cards (expect 3: close + a + b):', cards.length);
+      console.log('scene wallpaper excluded from grid:', !JSON.stringify(cards).includes('Scene C'));
+    }
   }
   console.log('effects ran:', effects.length);
   console.log('\nALL CLIENT CHECKS DONE');

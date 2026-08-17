@@ -90,7 +90,7 @@ dsh plugin --profile web add link:./dsh-wallpaper-engine
 
 1. 打开 `dsh web`，进入 DSH 界面。
 2. 打开 **设置 → General**，找到 **Wallpaper Engine** 行。
-3. 在下拉框里选一个 Video 或 Web 壁纸，它会出现在界面后方。
+3. 在**缩略图网格**里点选一张 Video 或 Web 壁纸，它会出现在界面后方（Scene/Application 无法内嵌网页，已从网格中隐藏）。
 4. 用 **暂停/播放** 暂停视频壁纸，用 **关闭** 清除壁纸。
    选择会保存在浏览器的 `localStorage`（键 `dsh-wallpaper-engine:selection`）中。
 
@@ -98,7 +98,7 @@ dsh plugin --profile web add link:./dsh-wallpaper-engine
 
 轮转基于**自定义轮播列表**（轮播列表）。用 **新建** 可以创建任意多个列表，从库存里勾选 Video/Web 壁纸加入每个列表，并为每个列表单独设置**切换间隔**（1、5、10、30、60 或 120 分钟）和**播放顺序**（顺序/随机），勾选 **自动轮转** 后只在该列表内循环。列表保存在浏览器 `localStorage`，完全在客户端维护——轮转不再依赖 Wallpaper Engine 自己的 `config.json` 播放列表路径。
 
-每个列表至少需要 2 个可播放壁纸；手动切换壁纸会重新计算下一次轮转时间；不同列表可以有不同的间隔（比如一个每 5 分钟、一个每 30 分钟）。首次使用时，插件会自动把第一个可播放的 WE 播放列表导入成一个轮播列表，开箱即用；编辑列表时也可以用 **从 WE 播放列表导入** 把其它播放列表导入当前编辑的列表。Scene 和 Application 壁纸不能嵌入网页，会自动从轮转候选中剔除，但仍会显示在选择列表中并标记为 `[不可播放]`。
+每个列表至少需要 2 个可播放壁纸；手动切换壁纸会重新计算下一次轮转时间；不同列表可以有不同的间隔（比如一个每 5 分钟、一个每 30 分钟）。首次使用时，插件会自动把第一个可播放的 WE 播放列表导入成一个轮播列表，开箱即用；编辑列表时也可以用 **从 WE 播放列表导入** 把其它播放列表导入当前编辑的列表。Scene 和 Application 壁纸不能嵌入网页，会自动从轮转候选和选择器中剔除。
 
 ### 四个滑动条
 
@@ -119,7 +119,7 @@ dsh plugin --profile web add link:./dsh-wallpaper-engine
 
 ## 已知限制
 
-- Scene（原生 3D）和 Application 壁纸无法内嵌，选择器里会显示为 `[不可播放]`；它们的动态渲染仍是 Wallpaper Engine 在桌面上的工作。
+- Scene（原生 3D）和 Application 壁纸无法内嵌，不会显示在缩略图选择器和轮播候选中；它们的动态渲染仍是 Wallpaper Engine 在桌面上的工作。
 - 浏览器需能自动播放静音 `<video>`（DSH 跑在 loopback，现代浏览器允许静音自动播放）。
 - 媒体从你本机的 Wallpaper Engine 安装路径提供；host 只提供它已枚举过的文件，不会暴露任意文件系统。
 - 选择器文案为中英混合（本 bundle 尚未接入 DSH 的 locale 命名空间）。
