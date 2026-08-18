@@ -1,6 +1,6 @@
 # dsh-plugin-wallpaper-engine
 
-[English](README.md) | [中文](README.zh.md)
+[English](README.en.md) | [中文](README.md)
 
 一个 DSH bundle，把你电脑上的 **Wallpaper Engine** 壁纸变成 **DSH 网页界面（`dsh web`）的背景**。
 
@@ -41,6 +41,14 @@ dsh plugin --profile web add dsh-plugin-wallpaper-engine
 ```
 
 装完重启 `dsh web`，打开 **设置 → General → Wallpaper Engine** 就能用。
+
+> **macOS 用户**：macOS 没有 Wallpaper Engine 客户端，本插件的 macOS 版（WaifuX + 散装媒体支持）由社区维护者 Jerry 维护，发布为独立 npm 包：
+>
+> ```sh
+> dsh plugin --profile web add dsh-plugin-wallpaper-engine-mac
+> ```
+>
+> 仓库：https://github.com/ruijiaang-lab/dsh-wallpaper-engine
 
 ### 开发者（运行你本地的一份代码）
 

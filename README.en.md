@@ -1,6 +1,6 @@
 # dsh-plugin-wallpaper-engine
 
-[English](README.md) | [中文](README.zh.md)
+[English](README.md) | [中文](README.md)
 
 A DSH bundle that turns your **Wallpaper Engine** wallpapers into the **background of the DSH web GUI** (`dsh web`).
 
@@ -49,6 +49,16 @@ dsh plugin --profile web add dsh-plugin-wallpaper-engine
 ```
 
 Then restart `dsh web` and open **Settings → General → Wallpaper Engine**.
+
+> **macOS users**: Wallpaper Engine has no macOS client. The macOS line of this
+> plugin (WaifuX + loose-media support) is maintained by Jerry and published as
+> a separate npm package:
+>
+> ```sh
+> dsh plugin --profile web add dsh-plugin-wallpaper-engine-mac
+> ```
+>
+> Repo: https://github.com/ruijiaang-lab/dsh-wallpaper-engine
 
 ### For developers (running your own copy)
 
