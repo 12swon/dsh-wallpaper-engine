@@ -174,6 +174,7 @@ The **自定义壁纸** section uploads local images (JPG / PNG) or videos (MP4)
 - **Format limit**: JPG / PNG / MP4 only; validated twice (browser + host) with a clear error message.
 - **Fit modes**: 覆盖 (cover) / 填充 (contain) / 居中 (center) / 拉伸 (fill) — applied to custom wallpapers only (WE wallpapers keep their intended cover framing).
 - **Management**: each upload can be **移除** (confirm dialog, deletes the local file); uploaded wallpapers also support hide/restore, playback speed, and flip.
+- **Deduplication**: re-uploading an identical file is detected by content (SHA-256) and returns the existing entry — no duplicate copies pile up in the library.
 
 ### Automatic rotation (轮播列表)
 

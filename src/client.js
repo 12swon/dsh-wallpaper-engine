@@ -150,6 +150,7 @@ const selection = {
   // Custom-upload UI state (transient): in-flight flag + last error message.
   uploading: false,
   uploadError: "",
+  uploadNote: "",
   // Upload-directory editor (transient): open state + draft path.
   editingUploadDir: false,
   uploadDirDraft: "",
@@ -514,6 +515,7 @@ async function uploadWallpaperFile(file) {
   }
   selection.uploading = true;
   selection.uploadError = "";
+  selection.uploadNote = "";
   emit();
   try {
     const title = file.name.replace(/\.[^.]+$/, "").slice(0, 80);
@@ -524,6 +526,11 @@ async function uploadWallpaperFile(file) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    // Host dedup: uploading the same file again returns the existing entry
+    // (data.duplicate) instead of storing a second copy.
+    if (data.duplicate) {
+      selection.uploadNote = "已存在相同内容的壁纸，已直接选择原有的那张";
+    }
     await loadInventory();
     applySelection(data.id);
   } catch (err) {
@@ -1118,6 +1125,7 @@ function WallpaperPicker() {
         sel.uploading && React.createElement("span", { className: "we-picker__hint" }, "上传中…"),
       ),
       sel.uploadError && React.createElement("div", { className: "we-picker__error" }, sel.uploadError),
+      sel.uploadNote && React.createElement("div", { className: "we-picker__note" }, sel.uploadNote),
       React.createElement("div", { className: "we-picker__row" },
         React.createElement("span", { className: "we-picker__hint" }, "已上传 " + uploadedList.length + " 个"),
         React.createElement("span", { className: "we-picker__hint" }, "格式仅限 JPG / PNG / MP4"),
@@ -1521,6 +1529,7 @@ const CSS = `
   .we-picker select:disabled { opacity: 0.45; cursor: default; }
   .we-picker__hint { font-size: 0.8em; opacity: 0.7; }
   .we-picker__error { font-size: 0.82em; opacity: 0.9; color: #e5534b; }
+  .we-picker__note { font-size: 0.8em; opacity: 0.85; color: var(--dsw-alias-brand-primary, #4f8cff); }
 
   /* ── Visual grouping: sections with a hairline divider + quiet label. ── */
   .we-picker__section { display: flex; flex-direction: column; gap: 8px; }
