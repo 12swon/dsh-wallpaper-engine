@@ -12,6 +12,10 @@ It discovers the Wallpaper Engine install on your machine, lists its wallpapers,
 - **Horizontal flip** — mirror the image (video / web / uploaded images);
 - **Custom uploads** — use your own local JPG / PNG / MP4 as a wallpaper, with a configurable storage location and fit modes.
 
+![Wallpaper showcase](docs/images/showcase.png)
+
+> Wallpaper + scrim + iOS liquid glass rendered behind the DSH GUI.
+
 ## Why only Video and Web wallpapers?
 
 Wallpaper Engine wallpapers come in four types:
@@ -146,6 +150,14 @@ via `libraryfolders.vdf`. Nothing further is required.
    The choice is remembered in your browser's `localStorage` (key
    `dsh-wallpaper-engine:selection`).
 
+![Settings UI overview](docs/images/features.png)
+
+> The settings panel: the current-wallpaper card plus the 自定义壁纸 / 轮播列表 / 壁纸效果 sections.
+
+![Wallpaper picker modal](docs/images/wallpaper-library.png)
+
+> The picker modal: browse every wallpaper thumbnail, batch-hide, and restore from the hidden tab.
+
 ### Hide & restore (soft delete)
 
 Every wallpaper card has a **隐藏** button in its top-right corner — it only removes the wallpaper from the list, **never touches the source file**. Restore any wallpaper from the **已隐藏** tab in the modal (single restore or **全部恢复**); the **批量** button in the modal toolbar enters multi-select mode to hide several at once. Hidden state is persisted in `localStorage` (survives refresh/restart); hiding the currently playing wallpaper doesn't interrupt playback, and automatic rotation skips hidden wallpapers.
@@ -194,6 +206,15 @@ agent. Selection, hidden state, and rotation lists live in browser `localStorage
 no durable DSH settings are written. The only on-disk data is the **custom-upload
 files** (in the directory you chose) and `~/.dsh-wallpaper-engine/config.json`
 (~100 bytes) that remembers that directory.
+
+## dsh-better-sidebar compatibility
+
+The liquid-glass effect is specifically adapted for dsh-better-sidebar's panels
+(frost, specular highlight, and layer hierarchy are unified), so the sidebar and
+the conversation area share the same wallpaper + scrim background and read as one
+continuous surface.
+
+![dsh-better-sidebar compatibility](docs/images/better-sidebar.png)
 
 ## Limitations
 

@@ -12,6 +12,10 @@
 - **水平翻转**：镜像画面（视频 / 网页 / 上传图片均适用）；
 - **自定义壁纸**：直接上传本地 JPG / PNG / MP4 当壁纸，可选存储位置与画面适配模式。
 
+![基础效果展示](docs/images/showcase.png)
+
+> 壁纸 + 磨砂遮罩 + iOS 液态玻璃，渲染在 DSH 界面后方。
+
 ## 为什么只支持 Video 和 Web 壁纸？
 
 Wallpaper Engine 的壁纸分四种类型：
@@ -112,6 +116,14 @@ dsh plugin --profile web add link:./dsh-wallpaper-engine
 4. 用 **暂停/播放** 暂停视频壁纸，用 **关闭** 清除壁纸。
    选择会保存在浏览器的 `localStorage`（键 `dsh-wallpaper-engine:selection`）中。
 
+![设置界面功能展示](docs/images/features.png)
+
+> 设置界面：当前壁纸卡片、「自定义壁纸」「轮播列表」「壁纸效果」四个分区。
+
+![壁纸选择弹窗与壁纸仓库](docs/images/wallpaper-library.png)
+
+> 选择弹窗：浏览全部壁纸缩略图，支持批量隐藏与已隐藏恢复。
+
 ### 隐藏与恢复（软删除）
 
 每张壁纸卡片右上角有「隐藏」按钮——只是从列表移除，**不删除任何源文件**。需要时在弹窗的「已隐藏」标签里单张**恢复**或**全部恢复**；弹窗工具栏的「批量」进入多选模式，可一次隐藏多张。隐藏状态保存在浏览器 `localStorage`，刷新 / 重启不丢；隐藏当前正在播放的壁纸不会打断播放，自动轮转也会跳过被隐藏的壁纸。
@@ -151,6 +163,12 @@ dsh plugin --profile web add link:./dsh-wallpaper-engine
 ## 配置
 
 本插件不会向模型暴露任何工具或提示文本，对 agent 零 token 开销。选择、隐藏、轮播列表等状态都保存在浏览器 `localStorage`，不写入任何持久化 DSH 设置。唯一的本地落盘数据是**自定义壁纸文件**（存于你设置的上传目录）与记录该目录位置的 `~/.dsh-wallpaper-engine/config.json`（约百字节）。
+
+## 与 dsh-better-sidebar 的兼容适配
+
+本插件的液态玻璃效果对 dsh-better-sidebar 的侧边栏面板做了专门适配（毛玻璃、高光与层级统一），让侧边栏与对话区共享同一套「壁纸 + 遮罩」背景，三列视觉一致、不再割裂。
+
+![dsh-better-sidebar 兼容适配](docs/images/better-sidebar.png)
 
 ## 已知限制
 
