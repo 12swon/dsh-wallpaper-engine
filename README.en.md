@@ -12,7 +12,8 @@ It discovers the Wallpaper Engine install on your machine, lists its wallpapers,
 - **Horizontal flip** — mirror the image (video / web / uploaded images);
 - **Custom uploads** — use your own local JPG / PNG / MP4 as a wallpaper, with a configurable storage location and fit modes;
 - **Scene static frames** (v0.3) — Scene wallpapers extract their main texture as a static background instead of being an unusable "not playable" entry.
-- **Liquid-glass settings page** (v0.3.1) — the settings UI is now a **first-level settings page** (following the dsh-web-ui-all skin-center design): the whole page is a customizable liquid-glass card with **accent color** (6 presets + a custom color picker) and **glass transparency** (0–60%). Both apply instantly and persist; buttons, sliders, selected cards and glass highlights all follow the chosen accent.
+- **Liquid-glass settings page** (v0.3.1) — the settings UI is now a **first-level settings page** (following the dsh-web-ui-all skin-center design): the whole page is a customizable liquid-glass card with **accent color** (6 presets + a custom color picker) and **glass transparency** (0–60%). Both apply instantly and persist.
+- **Whole-settings-window liquid glass** (v0.3.2) — one click turns the **entire native DSH settings window** (dialog + left nav + ALL native sections: General / Models / Plugins / …) into liquid glass with your custom accent + transparency. With the「设置窗口液态玻璃」master switch on, the window background, nav active/hover, buttons, switches and links all follow the chosen accent and transparency; off restores the stock look.
 
 ![Wallpaper showcase](docs/images/showcase.png)
 
@@ -259,21 +260,26 @@ Rotation runs over **user-defined carousel lists** (轮播列表). Create any nu
 
 At least two playable Video/Web wallpapers per list are required; manual changes reset the next timer; each list keeps its own cadence, so you can have one list switching every 5 minutes and another every 30. On first run, the first playable Wallpaper Engine playlist is imported automatically as a list so the feature works out of the box; **从 WE 播放列表导入** inside the editor imports any other playlist into the list being edited. Scene and Application wallpapers cannot be embedded in the web UI, so they are automatically excluded from rotation and hidden from the picker.
 
-### Liquid-glass appearance (accent color + transparency)
+### Liquid-glass appearance (whole settings window + accent + transparency)
 
 The **外观** (appearance) area at the top of the settings page controls the look
-of the glass card and the glass panels, following the dsh-web-ui-all skin-center
-design:
+of the **entire native DSH settings window** (following the dsh-web-ui-all
+skin-center design):
 
 | Control | What it controls | Range | Default |
 |---|---|---|---|
-| **配色** (accent) | Theme color: buttons, sliders, selected cards, badges and glass highlights all follow it | 6 presets + custom color picker | `#4f8cff` classic blue |
-| **玻璃透明度** (glass transparency) | Opacity of the glass surfaces (settings card, composer, bubbles, sidebar panels) | 0–60 % | 12 % |
+| **设置窗口液态玻璃** (settings-window glass) | Master switch: turns the whole settings window (dialog + left nav + all native sections) into liquid glass | on / off | on |
+| **配色** (accent) | Theme color: buttons, switches, links, nav active, sliders and glass highlights inside the window all follow it | 6 presets + custom color picker | `#4f8cff` classic blue |
+| **玻璃透明度** (glass transparency) | Opacity of the glass surfaces (settings window, composer, bubbles, sidebar panels) | 0–60 % | 12 % |
 
-> Higher transparency lets the wallpaper colour show through the panels more
-> clearly; lower values approach solid. Browsers without `backdrop-filter`
-> automatically fall back to a high-opacity solid so text stays readable. Both
-> controls apply instantly and persist in `localStorage`.
+> With the master switch on, **every native section** (General / Models /
+> Plugins / …) and the left nav become one liquid-glass + accent look — the
+> plugin overrides the shell tokens scoped to the settings dialog, so nothing
+> outside the window is touched. Higher transparency lets the wallpaper colour
+> show through the panels more clearly; lower values approach solid. Browsers
+> without `backdrop-filter` automatically fall back to a high-opacity solid so
+> text stays readable. All controls apply instantly and persist in
+> `localStorage`.
 
 ### The four sliders
 

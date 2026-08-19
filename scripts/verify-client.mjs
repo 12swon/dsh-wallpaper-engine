@@ -147,6 +147,7 @@ setTimeout(() => {
   console.log('--we-wallpaper-scale:', JSON.stringify(p['--we-wallpaper-scale']));
   console.log('--we-accent:', JSON.stringify(p['--we-accent']));
   console.log('--we-glass-alpha:', JSON.stringify(p['--we-glass-alpha']));
+  console.log('body[data-we-glass-window] (default on):', JSON.stringify(bodyEl.attributes['data-we-glass-window']));
   const timer = rotationTimers.find((item) => !item.cleared);
   console.log('rotation timer scheduled:', !!timer, timer ? timer.ms : null);
   if (timer) {
@@ -178,6 +179,8 @@ setTimeout(() => {
       console.log('accent preset swatches (expect 6):', (treeText.match(/"aria-label":"配色 /g) || []).length);
       console.log('custom color input present:', treeText.includes('type":"color"'));
       console.log('glass transparency slider row present:', treeText.includes('玻璃透明度'));
+      console.log('whole-window glass master switch present:', treeText.includes('设置窗口液态玻璃'));
+      console.log('window glass hint present:', treeText.includes('整个设置窗口'));
       // The thumbnail grid lives inside the picker MODAL now (settings page
       // shows only the summary + "选择壁纸" trigger). Open the modal by
       // invoking the trigger button's onClick, re-render, then count cards.

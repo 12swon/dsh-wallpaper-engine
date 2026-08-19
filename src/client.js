@@ -85,10 +85,16 @@ const DEFAULTS = {
   //   and consumed by buttons/sliders/selected cards/badges/glass highlights —
   //   independent of the shell's theme brand token.
   // - glassAlpha: glass-surface transparency in % (0–60, step 5), written to
-  //   --we-glass-alpha and used by the settings card, composer card, bubbles
-  //   and sidebar panels. Higher = more translucent (clearer wallpaper).
+  //   --we-glass-alpha and used by the settings window, settings card, composer
+  //   card, bubbles and sidebar panels. Higher = MORE transparent (clearer
+  //   wallpaper shows through), lower = closer to solid.
+  // - glassWindow: master switch for the WHOLE native settings window — when
+  //   on, the dialog (nav + every native section: General/Models/Plugins/…)
+  //   becomes liquid glass with the accent + transparency above; off restores
+  //   the shell's stock look.
   accent: "#4f8cff",
   glassAlpha: 12,
+  glassWindow: true,
 };
 
 // Selectable values for the two filters. Declared up top because
@@ -167,6 +173,7 @@ function readPersisted() {
       accent: typeof o.accent === "string" && /^#[0-9a-f]{6}$/i.test(o.accent)
         ? o.accent : DEFAULTS.accent,
       glassAlpha: clampNum(o.glassAlpha, 0, 60, DEFAULTS.glassAlpha),
+      glassWindow: o.glassWindow !== false,
     };
   } catch {
     return { id: "", ...DEFAULTS };
@@ -240,6 +247,7 @@ function persistSelection() {
       pickerLayout: selection.pickerLayout,
       accent: selection.accent,
       glassAlpha: selection.glassAlpha,
+      glassWindow: selection.glassWindow,
     }));
   } catch { /* ignore */ }
 }
@@ -826,10 +834,19 @@ function applyEffects() {
   //   reads --we-accent first, so the 配色 control restyles the whole picker
   //   and glass highlights without touching the shell theme.
   s.setProperty("--we-accent", selection.accent);
-  // - --we-glass-alpha: 0..0.6 transparency knob (0 = opaque, 0.6 = very
-  //   translucent). Consumed by the settings glass card and (scaled) by the
-  //   composer/bubbles/sidebar surfaces, replacing the old hardcoded alphas.
-  s.setProperty("--we-glass-alpha", String(selection.glassAlpha / 100));
+  // - --we-glass-alpha: white-overlay alpha of the glass surfaces. The 玻璃透明
+  //   度 slider semantics: higher = MORE transparent (clearer wallpaper shows
+  //   through), lower = closer to solid. 0% → ~0.25 (frosted, solid-ish),
+  //   60% → ~0.03 (nearly invisible glass). The 12% default ≈ the previous
+  //   hardcoded look (~0.15–0.2 white overlay).
+  const glassAlpha = Math.max(0.03, 0.25 - (selection.glassAlpha / 60) * 0.22);
+  s.setProperty("--we-glass-alpha", String(glassAlpha));
+  // - Master switch for the WHOLE native settings window: when on, the dialog
+  //   (nav + every native section) becomes liquid glass with the accent +
+  //   transparency above. Toggled instantly via a body attribute the scoped
+  //   CSS below keys on; off restores the shell's stock look.
+  if (selection.glassWindow) document.body.setAttribute("data-we-glass-window", "on");
+  else document.body.removeAttribute("data-we-glass-window");
 
   // Scrim immediacy: some composited/kiosk environments do not repaint a
   // z-index:-1 layer promptly when only an inherited CSS variable changes.
@@ -859,6 +876,7 @@ function clearEffects() {
   s.removeProperty("--we-object-fit");
   s.removeProperty("--we-accent");
   s.removeProperty("--we-glass-alpha");
+  document.body.removeAttribute("data-we-glass-window");
   const scrim = document.getElementById(SCRIM_ID);
   if (scrim) scrim.style.background = "";
 }
@@ -1095,7 +1113,7 @@ function WallpaperPicker() {
     React.createElement("div", { className: "we-picker__card-head" },
       React.createElement("span", { className: "we-picker__card-name" }, "Wallpaper Engine"),
       React.createElement("span", { className: "we-picker__card-badge" }, String(playableList.length)),
-      React.createElement("span", { className: "we-picker__card-desc" }, "本地 Wallpaper Engine 壁纸 · 液态玻璃设置页"),
+      React.createElement("span", { className: "we-picker__card-desc" }, "本地 Wallpaper Engine 壁纸 · 液态玻璃主题"),
     ),
     // ── 外观 (liquid-glass theming): 配色 presets + custom color, and the
     //    glass 透明度 slider. Applied instantly via --we-accent /
@@ -1127,6 +1145,25 @@ function WallpaperPicker() {
         ),
       ),
       SliderRow("玻璃透明度", 0, 60, 5, sel.glassAlpha, onGlassAlpha, sel.glassAlpha + "%"),
+      // 设置窗口液态玻璃 master switch: turns the WHOLE native settings window
+      // (nav + every native section, not just this page) into liquid glass with
+      // the accent + transparency above; off restores the stock shell look.
+      React.createElement("label", { className: "we-picker__rotation-toggle we-picker__window-toggle" },
+        React.createElement("input", {
+          type: "checkbox",
+          checked: sel.glassWindow,
+          onChange: (e) => {
+            selection.glassWindow = e.target.checked;
+            persistSelection();
+            applyEffects();
+            emit();
+          },
+        }),
+        "设置窗口液态玻璃",
+      ),
+      React.createElement("span", { className: "we-picker__hint" },
+        "整个设置窗口（含 General / 模型 / 插件等全部原生分区）跟随配色与透明度；关闭则恢复原生样式",
+      ),
     ),
     // ── Card-style switch: classic (WE's original aspect-ratio 16/9 cards —
     //    the CD-like look the author liked) vs the rewritten fixed-height
@@ -1855,36 +1892,99 @@ const CSS = `
      sectionList): the ul/li carry no default list styling. */
   .we-picker__section-list { margin: 0; padding: 0; list-style: none; }
 
-  /* ── Settings page: liquid-glass card (skin-center pluginCard language).
-     The section renders as a first-level settings page; the card is a
-     translucent frosted surface over the wallpaper: backdrop blur + a
-     top-weighted specular sheen + inner edge highlight + diffuse shadow.
-     Transparency is driven by --we-glass-alpha (the 玻璃透明度 slider, 0–60%),
-     and the accent tint by --we-accent (the 配色 control). When backdrop-filter
-     is unsupported the card falls back to a high-opacity solid, so text stays
-     readable everywhere. ── */
+  /* ── WHOLE native settings window → liquid glass (master switch).
+     Keyed on body[data-we-glass-window] (set by applyEffects from the
+     glassWindow preference). The settings dialog is the shell's
+     div[role="dialog"] containing the settings.section outlet anchor
+     (data-slot="settings.section" — stamped by the slot renderer, same anchor
+     the skin-center's semantic layer uses). The dialog reads inherited shell
+     tokens (panel background = --dsw-alias-bg-layer-2, nav active/hover =
+     --dsw-specific-sidebar-nav-item-*, close hover = --dsw-alias-interactive-bg-hover,
+     accents = --dsw-alias-brand-primary), so overriding those tokens ON the
+     dialog element restyles the ENTIRE window — left nav, content header and
+     every native section (General / Models / Plugins / …) — in one shot:
+     translucent glass base + backdrop blur + specular sheen + inner highlight,
+     with the accent color remapped to --we-accent (配色) and all surface alphas
+     driven by --we-glass-alpha (玻璃透明度). Off = stock shell look. ── */
+  body[data-we-glass-window] [role="dialog"]:has([data-slot="settings.section"]) {
+    /* Glass surface alphas (light scheme): translucent white, scaled by the
+       transparency slider (higher = more transparent). */
+    --dsw-alias-bg-layer-1: rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.5) * 0.9));
+    --dsw-alias-bg-layer-2: rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.5) * 1.0));
+    --dsw-alias-bg-layer-3: rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.5) * 1.1));
+    /* Nav + interactive states tinted with the accent. */
+    --dsw-specific-sidebar-nav-item-active: color-mix(in srgb, var(--we-accent, #4f8cff) 26%, rgba(255, 255, 255, 0.08));
+    --dsw-specific-sidebar-nav-item-hover: color-mix(in srgb, var(--we-accent, #4f8cff) 13%, rgba(255, 255, 255, 0.05));
+    --dsw-alias-interactive-bg-hover: color-mix(in srgb, var(--we-accent, #4f8cff) 14%, transparent);
+    --dsw-alias-interactive-bg-hover-accent: color-mix(in srgb, var(--we-accent, #4f8cff) 18%, transparent);
+    /* Whole-dialog accent remap: every native control (links, primary buttons,
+       switches, active tabs, slider fills) follows the 配色 control. */
+    --dsw-alias-brand-primary: var(--we-accent, #4f8cff);
+    --dsw-alias-brand-text: var(--we-accent, #4f8cff);
+    --dsw-alias-button-primary-fill: var(--we-accent, #4f8cff);
+    --dsw-alias-button-primary-hover: color-mix(in srgb, var(--we-accent, #4f8cff) 88%, #fff);
+    --dsw-alias-button-primary-dimmed: color-mix(in srgb, var(--we-accent, #4f8cff) 22%, transparent);
+    --dsw-alias-state-business-primary: var(--we-accent, #4f8cff);
+    /* Frosted finish: large-radius blur + saturation melt + specular sheen +
+       inner edge highlight + diffuse shadow (the shell already rounds the
+       panel at 24px). */
+    -webkit-backdrop-filter: blur(34px) saturate(150%) brightness(1.02);
+    backdrop-filter: blur(34px) saturate(150%) brightness(1.02);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.03) 38%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 24px 80px rgba(0, 7, 18, 0.35);
+  }
+  /* Dark scheme: deep translucent base instead of white. */
+  body[data-ds-dark-theme][data-we-glass-window] [role="dialog"]:has([data-slot="settings.section"]) {
+    --dsw-alias-bg-layer-1: rgba(13, 21, 36, calc(var(--we-glass-alpha, 0.5) * 0.9));
+    --dsw-alias-bg-layer-2: rgba(13, 21, 36, calc(var(--we-glass-alpha, 0.5) * 1.0));
+    --dsw-alias-bg-layer-3: rgba(17, 26, 43, calc(var(--we-glass-alpha, 0.5) * 1.1));
+    --dsw-specific-sidebar-nav-item-active: color-mix(in srgb, var(--we-accent, #4f8cff) 30%, rgba(255, 255, 255, 0.06));
+    --dsw-specific-sidebar-nav-item-hover: color-mix(in srgb, var(--we-accent, #4f8cff) 14%, rgba(255, 255, 255, 0.04));
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      rgba(255, 255, 255, 0.02) 38%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+  }
+  /* No backdrop-filter support: fall back to near-opaque glass so text stays
+     readable (same policy as the skin's patches.css). */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    body[data-we-glass-window] [role="dialog"]:has([data-slot="settings.section"]) {
+      --dsw-alias-bg-layer-1: rgba(255, 255, 255, 0.96);
+      --dsw-alias-bg-layer-2: rgba(255, 255, 255, 0.97);
+      --dsw-alias-bg-layer-3: rgba(255, 255, 255, 0.98);
+    }
+    body[data-ds-dark-theme][data-we-glass-window] [role="dialog"]:has([data-slot="settings.section"]) {
+      --dsw-alias-bg-layer-1: rgba(13, 21, 36, 0.97);
+      --dsw-alias-bg-layer-2: rgba(13, 21, 36, 0.97);
+      --dsw-alias-bg-layer-3: rgba(17, 26, 43, 0.98);
+    }
+  }
+
+  /* Section card (mirrors the skin-center's pluginCard): a quiet layer card —
+     translucent token background + hairline border + radius. NO own backdrop
+     blur: the whole settings window is the glass surface (see the
+     body[data-we-glass-window] dialog rules above), so a nested blur would
+     double-frost and look muddy. Without the master switch the card still
+     reads as a subtle layer over the stock panel. */
   .we-picker__card-shell {
     border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.28));
     border-radius: 12px;
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.15) * 1.1)) 0%,
-      rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.15) * 0.55)) 30%,
-      rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.15) * 0.28)) 100%
-    );
-    -webkit-backdrop-filter: blur(24px) saturate(140%);
-    backdrop-filter: blur(24px) saturate(140%);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.15) * 1.2 + 0.1)),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-      0 10px 30px rgba(0, 7, 18, 0.2);
+    background: var(--dsw-alias-bg-layer-3, rgba(128, 128, 128, 0.08));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     padding: 14px 16px;
     transition: border-color 0.16s ease, background-color 0.16s ease;
   }
   .we-picker__card-shell:hover { border-color: var(--dsw-alias-label-dimmed, rgba(128, 128, 128, 0.5)); }
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .we-picker__card-shell { background-image: none; background: rgba(30, 34, 44, 0.94); }
-  }
   /* Card header: name + count badge + description (mirrors skin-center). */
   .we-picker__card-head {
     display: flex; align-items: baseline; gap: 8px;
@@ -1923,6 +2023,10 @@ const CSS = `
   }
   .we-picker__swatch-custom input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
   .we-picker__swatch-custom input[type="color"]::-webkit-color-swatch { border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 50%; }
+  /* Master-switch row (设置窗口液态玻璃) sits on its own line under the 透明度
+     slider so the switch and the hint read as one labelled control. */
+  .we-picker__window-toggle { font-size: 0.82em; }
+  .we-picker__window-toggle + .we-picker__hint { margin-left: 2px; }
 
   /* Pagination bar under each paged grid (normal / hidden / group editor).
      Horizontally centered; as a direct child of the flex modal body it sinks
