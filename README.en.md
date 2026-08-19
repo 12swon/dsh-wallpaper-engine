@@ -270,6 +270,7 @@ skin-center design):
 |---|---|---|---|
 | **设置窗口液态玻璃** (settings-window glass) | Master switch: turns the whole settings window (dialog + left nav + all native sections) into liquid glass | on / off | on |
 | **配色** (accent) | Theme color: buttons, switches, links, nav active, sliders and glass highlights inside the window all follow it | 6 presets + custom color picker | `#4f8cff` classic blue |
+| **玻璃颜色** (glass color) | The BASE TINT of the settings-window glass itself (not just transparency) | 6 presets + custom color picker | white (light) / deep navy (dark) |
 | **玻璃透明度** (glass transparency) | Opacity of the glass surfaces (settings window, composer, bubbles, sidebar panels) | 0–60 % | 12 % |
 
 > With the master switch on, **every native section** (General / Models /
@@ -278,11 +279,13 @@ skin-center design):
 > outside the window is touched. The settings-window glass blur uses the SAME
 > adjustment range as the conversation bar: the **玻璃** (glass) slider (0–60 px)
 > drives the blur radius of both the settings window and the composer/bubbles,
-> with an identical saturation/brightness/contrast recipe; the **玻璃透明度**
-> control sets the transparency — higher lets the wallpaper colour show through
-> more clearly, lower approaches solid. Browsers without `backdrop-filter`
-> automatically fall back to a high-opacity solid so text stays readable. All
-> controls apply instantly and persist in `localStorage`.
+> with an identical saturation/brightness/contrast recipe; **玻璃颜色** sets the
+> base tint of the glass itself (defaults white in light / deep navy in dark;
+> once picked, both themes use that color), and the **玻璃透明度** control sets
+> the transparency — higher lets the wallpaper colour show through more clearly,
+> lower approaches solid. Browsers without `backdrop-filter` automatically fall
+> back to a high-opacity solid so text stays readable. All controls apply
+> instantly and persist in `localStorage`.
 
 ### The four sliders
 

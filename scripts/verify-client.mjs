@@ -147,6 +147,7 @@ setTimeout(() => {
   console.log('--we-wallpaper-scale:', JSON.stringify(p['--we-wallpaper-scale']));
   console.log('--we-accent:', JSON.stringify(p['--we-accent']));
   console.log('--we-glass-alpha:', JSON.stringify(p['--we-glass-alpha']));
+  console.log('--we-glass-color:', JSON.stringify(p['--we-glass-color']));
   console.log('body[data-we-glass-window] (default on):', JSON.stringify(bodyEl.attributes['data-we-glass-window']));
   const timer = rotationTimers.find((item) => !item.cleared);
   console.log('rotation timer scheduled:', !!timer, timer ? timer.ms : null);
@@ -177,6 +178,8 @@ setTimeout(() => {
       console.log('card head (we-picker__card-head) present:', treeText.includes('we-picker__card-head'));
       console.log('card name "Wallpaper Engine":', treeText.includes('Wallpaper Engine'));
       console.log('accent preset swatches (expect 6):', (treeText.match(/"aria-label":"配色 /g) || []).length);
+      console.log('glass-color preset swatches (expect 6):', (treeText.match(/"aria-label":"玻璃颜色 /g) || []).length);
+      console.log('glass color custom input present:', treeText.includes('自定义玻璃颜色'));
       console.log('custom color input present:', treeText.includes('type":"color"'));
       console.log('glass transparency slider row present:', treeText.includes('玻璃透明度'));
       // 玻璃 slider now spans 0–60 px (was 0–40): assert the raised max on the

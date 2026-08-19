@@ -88,12 +88,17 @@ const DEFAULTS = {
   //   --we-glass-alpha and used by the settings window, settings card, composer
   //   card, bubbles and sidebar panels. Higher = MORE transparent (clearer
   //   wallpaper shows through), lower = closer to solid.
+  // - glassColor: the GLASS BASE COLOR of the settings window (#rrggbb),
+  //   written to --we-glass-color. Defaults keep the stock look (white glass
+  //   in light mode, deep navy in dark); once the user picks a color BOTH
+  //   themes use it, so the window glass can be tinted to taste.
   // - glassWindow: master switch for the WHOLE native settings window — when
   //   on, the dialog (nav + every native section: General/Models/Plugins/…)
   //   becomes liquid glass with the accent + transparency above; off restores
   //   the shell's stock look.
   accent: "#4f8cff",
   glassAlpha: 12,
+  glassColor: "#ffffff",
   glassWindow: true,
 };
 
@@ -112,6 +117,18 @@ const ACCENT_PRESETS = [
   "#F3B75F", // 琥珀金
   "#F1717F", // 珊瑚红
   "#CBE77D", // 黄绿 (success)
+];
+
+// 玻璃颜色 presets for the settings-window glass BASE tint (--we-glass-color).
+// The first two are the stock-look defaults (white in light mode, deep navy in
+// dark); picking any preset (or a custom color) tints the glass in BOTH themes.
+const GLASS_COLOR_PRESETS = [
+  "#ffffff", // 白（浅色默认）
+  "#0d1524", // 深夜蓝（深色默认）
+  "#67DCE7", // 冰青
+  "#DD8FAC", // 玫瑰粉
+  "#F3B75F", // 琥珀金
+  "#F1717F", // 珊瑚红
 ];
 
 // ── Persisted selection ─────────────────────────────────────────────────────
@@ -173,6 +190,8 @@ function readPersisted() {
       accent: typeof o.accent === "string" && /^#[0-9a-f]{6}$/i.test(o.accent)
         ? o.accent : DEFAULTS.accent,
       glassAlpha: clampNum(o.glassAlpha, 0, 60, DEFAULTS.glassAlpha),
+      glassColor: typeof o.glassColor === "string" && /^#[0-9a-f]{6}$/i.test(o.glassColor)
+        ? o.glassColor : DEFAULTS.glassColor,
       glassWindow: o.glassWindow !== false,
     };
   } catch {
@@ -247,6 +266,7 @@ function persistSelection() {
       pickerLayout: selection.pickerLayout,
       accent: selection.accent,
       glassAlpha: selection.glassAlpha,
+      glassColor: selection.glassColor,
       glassWindow: selection.glassWindow,
     }));
   } catch { /* ignore */ }
@@ -841,6 +861,10 @@ function applyEffects() {
   //   hardcoded look (~0.15–0.2 white overlay).
   const glassAlpha = Math.max(0.03, 0.25 - (selection.glassAlpha / 60) * 0.22);
   s.setProperty("--we-glass-alpha", String(glassAlpha));
+  // - --we-glass-color: glass base tint of the settings window. The stock
+  //   defaults live in CSS (white glass light / deep navy dark); once the user
+  //   picks a color (玻璃颜色), both themes use it.
+  s.setProperty("--we-glass-color", selection.glassColor);
   // - Master switch for the WHOLE native settings window: when on, the dialog
   //   (nav + every native section) becomes liquid glass with the accent +
   //   transparency above. Toggled instantly via a body attribute the scoped
@@ -876,6 +900,7 @@ function clearEffects() {
   s.removeProperty("--we-object-fit");
   s.removeProperty("--we-accent");
   s.removeProperty("--we-glass-alpha");
+  s.removeProperty("--we-glass-color");
   document.body.removeAttribute("data-we-glass-window");
   const scrim = document.getElementById(SCRIM_ID);
   if (scrim) scrim.style.background = "";
@@ -1008,12 +1033,18 @@ function WallpaperPicker() {
   const onBorder = (pct) => { selection.border = pct / 100; persistSelection(); applyEffects(); emit(); };
   const onBlur = (px) => { selection.blur = px; persistSelection(); applyEffects(); emit(); };
   const onWallpaperBlur = (px) => { selection.wallpaperBlur = px; persistSelection(); applyEffects(); emit(); };
-  // 配色 (accent color) + 玻璃透明度 (glass transparency): applied instantly
-  // through applyEffects() (--we-accent / --we-glass-alpha), persisted so the
-  // settings page keeps its custom look across reloads.
+  // 配色 (accent color) + 玻璃透明度 (glass transparency) + 玻璃颜色 (glass base
+  // tint): applied instantly through applyEffects() (--we-accent /
+  // --we-glass-alpha / --we-glass-color), persisted so the settings page keeps
+  // its custom look across reloads.
   const onAccent = (hex) => {
     if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
     selection.accent = hex;
+    persistSelection(); applyEffects(); emit();
+  };
+  const onGlassColor = (hex) => {
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+    selection.glassColor = hex;
     persistSelection(); applyEffects(); emit();
   };
   const onGlassAlpha = (pct) => {
@@ -1140,6 +1171,31 @@ function WallpaperPicker() {
             onInput: (e) => onAccent(e.target.value),
             onChange: (e) => onAccent(e.target.value),
             title: "自定义配色",
+          }),
+          React.createElement("span", { className: "we-picker__hint" }, "自定义"),
+        ),
+      ),
+      // 玻璃颜色: the settings-window glass BASE tint. Defaults keep the stock
+      // look (white light / deep navy dark); picking any preset or a custom
+      // color tints the whole window glass in BOTH themes.
+      React.createElement("div", { className: "we-picker__row we-picker__accent-row" },
+        React.createElement("span", { className: "we-picker__hint we-picker__label" }, "玻璃颜色"),
+        GLASS_COLOR_PRESETS.map((hex) => React.createElement("button", {
+          key: hex,
+          className: "we-picker__swatch" + (sel.glassColor === hex ? " we-picker__swatch--active" : ""),
+          type: "button",
+          style: { background: hex },
+          title: hex,
+          onClick: () => onGlassColor(hex),
+          "aria-label": "玻璃颜色 " + hex,
+        })),
+        React.createElement("label", { className: "we-picker__swatch-custom" },
+          React.createElement("input", {
+            type: "color",
+            value: sel.glassColor,
+            onInput: (e) => onGlassColor(e.target.value),
+            onChange: (e) => onGlassColor(e.target.value),
+            title: "自定义玻璃颜色",
           }),
           React.createElement("span", { className: "we-picker__hint" }, "自定义"),
         ),
@@ -1907,11 +1963,13 @@ const CSS = `
      with the accent color remapped to --we-accent (配色) and all surface alphas
      driven by --we-glass-alpha (玻璃透明度). Off = stock shell look. ── */
   body[data-we-glass-window] [role="dialog"]:has([data-slot="settings.section"]) {
-    /* Glass surface alphas (light scheme): translucent white, scaled by the
-       transparency slider (higher = more transparent). */
-    --dsw-alias-bg-layer-1: rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.5) * 0.9));
-    --dsw-alias-bg-layer-2: rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.5) * 1.0));
-    --dsw-alias-bg-layer-3: rgba(255, 255, 255, calc(var(--we-glass-alpha, 0.5) * 1.1));
+    /* Glass surface alphas (light scheme): the base tint is --we-glass-color
+       (玻璃颜色) mixed with transparent at the 玻璃透明度-driven alpha, so the
+       whole window glass can be tinted to any color. Default (no custom color)
+       = white glass, the stock look. */
+    --dsw-alias-bg-layer-1: color-mix(in srgb, var(--we-glass-color, #ffffff) calc(var(--we-glass-alpha, 0.5) * 0.9 * 100%), transparent);
+    --dsw-alias-bg-layer-2: color-mix(in srgb, var(--we-glass-color, #ffffff) calc(var(--we-glass-alpha, 0.5) * 1.0 * 100%), transparent);
+    --dsw-alias-bg-layer-3: color-mix(in srgb, var(--we-glass-color, #ffffff) calc(var(--we-glass-alpha, 0.5) * 1.1 * 100%), transparent);
     /* Nav + interactive states tinted with the accent. */
     --dsw-specific-sidebar-nav-item-active: color-mix(in srgb, var(--we-accent, #4f8cff) 26%, rgba(255, 255, 255, 0.08));
     --dsw-specific-sidebar-nav-item-hover: color-mix(in srgb, var(--we-accent, #4f8cff) 13%, rgba(255, 255, 255, 0.05));
@@ -1944,11 +2002,12 @@ const CSS = `
       inset 0 0 0 1px rgba(255, 255, 255, 0.06),
       0 24px 80px rgba(0, 7, 18, 0.35);
   }
-  /* Dark scheme: deep translucent base instead of white. */
+  /* Dark scheme: deep translucent base instead of white. The default glass
+     color is deep navy; a user-picked 玻璃颜色 overrides it in both themes. */
   body[data-ds-dark-theme][data-we-glass-window] [role="dialog"]:has([data-slot="settings.section"]) {
-    --dsw-alias-bg-layer-1: rgba(13, 21, 36, calc(var(--we-glass-alpha, 0.5) * 0.9));
-    --dsw-alias-bg-layer-2: rgba(13, 21, 36, calc(var(--we-glass-alpha, 0.5) * 1.0));
-    --dsw-alias-bg-layer-3: rgba(17, 26, 43, calc(var(--we-glass-alpha, 0.5) * 1.1));
+    --dsw-alias-bg-layer-1: color-mix(in srgb, var(--we-glass-color, #0d1524) calc(var(--we-glass-alpha, 0.5) * 0.9 * 100%), transparent);
+    --dsw-alias-bg-layer-2: color-mix(in srgb, var(--we-glass-color, #0d1524) calc(var(--we-glass-alpha, 0.5) * 1.0 * 100%), transparent);
+    --dsw-alias-bg-layer-3: color-mix(in srgb, var(--we-glass-color, #0d1524) calc(var(--we-glass-alpha, 0.5) * 1.1 * 100%), transparent);
     --dsw-specific-sidebar-nav-item-active: color-mix(in srgb, var(--we-accent, #4f8cff) 30%, rgba(255, 255, 255, 0.06));
     --dsw-specific-sidebar-nav-item-hover: color-mix(in srgb, var(--we-accent, #4f8cff) 14%, rgba(255, 255, 255, 0.04));
     background-image: linear-gradient(
@@ -1962,14 +2021,14 @@ const CSS = `
      readable (same policy as the skin's patches.css). */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     body[data-we-glass-window] [role="dialog"]:has([data-slot="settings.section"]) {
-      --dsw-alias-bg-layer-1: rgba(255, 255, 255, 0.96);
-      --dsw-alias-bg-layer-2: rgba(255, 255, 255, 0.97);
-      --dsw-alias-bg-layer-3: rgba(255, 255, 255, 0.98);
+      --dsw-alias-bg-layer-1: var(--we-glass-color, #ffffff);
+      --dsw-alias-bg-layer-2: var(--we-glass-color, #ffffff);
+      --dsw-alias-bg-layer-3: var(--we-glass-color, #ffffff);
     }
     body[data-ds-dark-theme][data-we-glass-window] [role="dialog"]:has([data-slot="settings.section"]) {
-      --dsw-alias-bg-layer-1: rgba(13, 21, 36, 0.97);
-      --dsw-alias-bg-layer-2: rgba(13, 21, 36, 0.97);
-      --dsw-alias-bg-layer-3: rgba(17, 26, 43, 0.98);
+      --dsw-alias-bg-layer-1: var(--we-glass-color, #0d1524);
+      --dsw-alias-bg-layer-2: var(--we-glass-color, #0d1524);
+      --dsw-alias-bg-layer-3: var(--we-glass-color, #0d1524);
     }
   }
 
