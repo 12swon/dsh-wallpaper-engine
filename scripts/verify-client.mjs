@@ -128,6 +128,12 @@ try { exportsObj.apply(ctx); } catch (e) { thrown = e && e.message; }
 console.log('apply threw:', thrown || '(none)');
 console.log('slot registrations:', JSON.stringify(registrations));
 
+const sectionReg = registrations.find((r) => r.key === 'settings.section');
+console.log('registered as first-level settings.section:', !!sectionReg);
+console.log('section id:', sectionReg ? sectionReg.id : '(missing)');
+console.log('section label:', sectionReg ? sectionReg.label : '(missing)');
+console.log('no longer registered as general item:', !registrations.some((r) => r.key === 'settings.general.item'));
+
 setTimeout(() => {
   console.log('body children ids:', JSON.stringify(bodyEl.children.map((c) => c.id)));
   console.log('has wallpaper layer:', !!document.getElementById('dsh-wallpaper-engine-layer'));
@@ -139,6 +145,8 @@ setTimeout(() => {
   console.log('--we-blur:', JSON.stringify(p['--we-blur']));
   console.log('--we-wallpaper-blur:', JSON.stringify(p['--we-wallpaper-blur']));
   console.log('--we-wallpaper-scale:', JSON.stringify(p['--we-wallpaper-scale']));
+  console.log('--we-accent:', JSON.stringify(p['--we-accent']));
+  console.log('--we-glass-alpha:', JSON.stringify(p['--we-glass-alpha']));
   const timer = rotationTimers.find((item) => !item.cleared);
   console.log('rotation timer scheduled:', !!timer, timer ? timer.ms : null);
   if (timer) {
@@ -157,6 +165,19 @@ setTimeout(() => {
     try { tree = pickerRenders[0](); } catch (e) { renderError = e && e.message; }
     console.log('picker render threw:', renderError || '(none)');
     if (tree) {
+      // First-level section wrapper: ul.we-picker__section-list > li glass card.
+      const rootUl = tree.type === 'ul' ? tree : null;
+      const rootCls = typeof tree.props?.className === 'string' ? tree.props.className : '';
+      console.log('section wrapper is ul.we-picker__section-list:', rootUl && rootCls.includes('we-picker__section-list'));
+      const liChildren = rootUl ? (Array.isArray(rootUl.children) ? rootUl.children : []) : [];
+      const li = liChildren.find((n) => n && typeof n === 'object' && typeof n.props?.className === 'string' && n.props.className.includes('we-picker__card-shell'));
+      console.log('glass card shell (li.we-picker__card-shell) present:', !!li);
+      const treeText = JSON.stringify(tree);
+      console.log('card head (we-picker__card-head) present:', treeText.includes('we-picker__card-head'));
+      console.log('card name "Wallpaper Engine":', treeText.includes('Wallpaper Engine'));
+      console.log('accent preset swatches (expect 6):', (treeText.match(/"aria-label":"配色 /g) || []).length);
+      console.log('custom color input present:', treeText.includes('type":"color"'));
+      console.log('glass transparency slider row present:', treeText.includes('玻璃透明度'));
       // The thumbnail grid lives inside the picker MODAL now (settings page
       // shows only the summary + "选择壁纸" trigger). Open the modal by
       // invoking the trigger button's onClick, re-render, then count cards.
