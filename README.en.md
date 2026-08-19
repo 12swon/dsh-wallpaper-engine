@@ -276,7 +276,7 @@ skin-center design):
 > Plugins / …) and the left nav become one liquid-glass + accent look — the
 > plugin overrides the shell tokens scoped to the settings dialog, so nothing
 > outside the window is touched. The settings-window glass blur uses the SAME
-> adjustment range as the conversation bar: the **玻璃** (glass) slider (0–40 px)
+> adjustment range as the conversation bar: the **玻璃** (glass) slider (0–60 px)
 > drives the blur radius of both the settings window and the composer/bubbles,
 > with an identical saturation/brightness/contrast recipe; the **玻璃透明度**
 > control sets the transparency — higher lets the wallpaper colour show through
@@ -293,7 +293,7 @@ While a wallpaper is active, four sliders let you tune how it blends with the UI
 | **壁纸模糊** (wallpaper blur) | Blurs the wallpaper itself | 0–60 px | 0 |
 | **暗化** (scrim) | Darkens the overlay between wallpaper and text | 0–90 % | 25 % |
 | **边框** (border) | Raises border/divider contrast | 0–90 % | 35 % |
-| **玻璃** (glass) | Blur radius of the frosted-glass panels (composer, bubbles) | 0–40 px | 24 |
+| **玻璃** (glass) | Blur radius of the frosted-glass panels (composer, bubbles) | 0–60 px | 24 |
 
 > **Light vs. dark mode** — Wallpapers differ wildly in colour and brightness, so
 > there is no one mode that fits every wallpaper. Switch DSH's theme between

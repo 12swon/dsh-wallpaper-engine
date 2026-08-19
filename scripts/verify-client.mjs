@@ -179,6 +179,23 @@ setTimeout(() => {
       console.log('accent preset swatches (expect 6):', (treeText.match(/"aria-label":"配色 /g) || []).length);
       console.log('custom color input present:', treeText.includes('type":"color"'));
       console.log('glass transparency slider row present:', treeText.includes('玻璃透明度'));
+      // 玻璃 slider now spans 0–60 px (was 0–40): assert the raised max on the
+      // 玻璃 range input (label "玻璃", max 60) so the range stays in sync.
+      const glassSlider = (() => {
+        let hit = null;
+        (function walk(node) {
+          if (Array.isArray(node)) { node.forEach(walk); return; }
+          if (!node || typeof node !== 'object') return;
+          const cls = typeof node.props?.className === 'string' ? node.props.className : '';
+          const children = Array.isArray(node.children) ? node.children : [];
+          const label = children.find((c) => c && typeof c === 'object' && Array.isArray(c.children) && c.children.includes('玻璃'));
+          if (cls.includes('we-picker__slider-row') && label) hit = node;
+          if (Array.isArray(node.children)) node.children.forEach(walk);
+        })(tree);
+        return hit;
+      })();
+      const sliderMax = glassSlider ? JSON.stringify(glassSlider).match(/"max":"(\d+)"/)?.[1] : null;
+      console.log('玻璃 slider max (expect 60):', sliderMax);
       console.log('whole-window glass master switch present:', treeText.includes('设置窗口液态玻璃'));
       console.log('window glass hint present:', treeText.includes('整个设置窗口'));
       // The thumbnail grid lives inside the picker MODAL now (settings page

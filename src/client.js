@@ -152,7 +152,7 @@ function readPersisted() {
       id: typeof o.id === "string" ? o.id : "",
       scrim: clampNum(o.scrim, 0, 1, DEFAULTS.scrim),
       border: clampNum(o.border, 0, 1, DEFAULTS.border),
-      blur: clampNum(o.blur, 0, 40, DEFAULTS.blur),
+      blur: clampNum(o.blur, 0, 60, DEFAULTS.blur),
       wallpaperBlur: clampNum(o.wallpaperBlur, 0, 60, DEFAULTS.wallpaperBlur),
       rotationEnabled: o.rotationEnabled === true,
       rotationGroupId: typeof o.rotationGroupId === "string" ? o.rotationGroupId : "",
@@ -1685,7 +1685,7 @@ function WallpaperPicker() {
       SliderRow("壁纸模糊", 0, 60, 1, sel.wallpaperBlur, onWallpaperBlur, sel.wallpaperBlur + "px"),
       SliderRow("暗化", 0, 90, 5, Math.round(sel.scrim * 100), onScrim, Math.round(sel.scrim * 100) + "%"),
       SliderRow("边框", 0, 90, 5, Math.round(sel.border * 100), onBorder, Math.round(sel.border * 100) + "%"),
-      SliderRow("玻璃", 0, 40, 1, sel.blur, onBlur, sel.blur + "px"),
+      SliderRow("玻璃", 0, 60, 1, sel.blur, onBlur, sel.blur + "px"),
       // Playback speed — native playbackRate, instant, no media reload. Video
       // wallpapers only (web/iframe wallpapers have no playbackRate).
       sel.type === "video" && React.createElement("div", { className: "we-picker__row" },
@@ -1927,7 +1927,7 @@ const CSS = `
     --dsw-alias-state-business-primary: var(--we-accent, #4f8cff);
     /* Frosted finish — the SAME recipe as the conversation surfaces (composer
        card / bubbles): the blur radius, saturation melt and brightness all
-       read the 玻璃 slider (--we-blur 0–40px, --we-saturate, --we-glass-brightness),
+       read the 玻璃 slider (--we-blur 0–60px, --we-saturate, --we-glass-brightness),
        so the settings window glass tracks the conversation-bar adjustment range
        exactly. Plus a specular sheen + inner edge highlight + diffuse shadow
        (the shell already rounds the panel at 24px). */
