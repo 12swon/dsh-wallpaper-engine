@@ -4,33 +4,69 @@
 
 A DSH bundle that turns your **Wallpaper Engine** wallpapers into the **background of the DSH web GUI** (`dsh web`).
 
-It discovers the Wallpaper Engine install on your machine, lists its wallpapers, and renders the *portable* ones (Video `.mp4` and Web/HTML) behind the DSH chat interface with an iOS-style **liquid glass** effect. Since v0.2 it also adds:
+It discovers the Wallpaper Engine install on your machine, lists its wallpapers, and renders them behind the DSH chat interface with an iOS-style **liquid glass** effect: Video (`.mp4`) plays live, Web/HTML loads in an iframe, and **Scene wallpapers appear as extracted static frames**. Since v0.2 it also adds:
 
 - **Modal wallpaper picker** — the thumbnail grid lives in a popup modal, so the settings page stays compact;
 - **Hide / restore (soft delete)** — hide wallpapers you don't want, restore them anytime; no source files are touched;
 - **Playback speed** — six native presets from 0.5x to 2x, instant, no media reload;
 - **Horizontal flip** — mirror the image (video / web / uploaded images);
-- **Custom uploads** — use your own local JPG / PNG / MP4 as a wallpaper, with a configurable storage location and fit modes.
+- **Custom uploads** — use your own local JPG / PNG / MP4 as a wallpaper, with a configurable storage location and fit modes;
+- **Scene static frames** (v0.3) — Scene wallpapers extract their main texture as a static background instead of being an unusable "not playable" entry.
 
 ![Wallpaper showcase](docs/images/showcase.png)
 
 > Wallpaper + scrim + iOS liquid glass rendered behind the DSH GUI.
 
-## Why only Video and Web wallpapers?
+## Which wallpaper types are supported?
 
 Wallpaper Engine wallpapers come in four types:
 
 | Type | Rendered by | Portable to DSH? |
 |---|---|---|
-| **Scene** | Wallpaper Engine's own 3D engine | ❌ No — native 3D (`.obj`/shaders), only WE can render it |
+| **Scene** | Wallpaper Engine's own 3D engine | ✅ Static frame — its main texture is extracted (`.pkg`/`.json` .tex or embedded JPEG) |
 | **Video** | a plain `.mp4` file | ✅ Yes — plays in a `<video>` tag |
 | **Web** | a Chromium (`webwallpaper64.exe`) host for HTML | ✅ Yes — loads in an `<iframe>` |
 | **Application** | an injected external window | ❌ No |
 
-This is the same fundamental limit that applies to **mineradio** and every other
-third-party Wallpaper Engine integration: only *Video* and *Web* wallpapers are
-portable. Scene wallpapers are therefore hidden from the thumbnail picker and
-rotation candidates — they cannot be used as a live background here.
+A Scene wallpaper's 3D scene (shaders/particles/geometry) cannot be replayed in a
+browser, but its **main texture** (usually the background artwork) can be
+extracted as a **static frame** — for photographic and illustration-style scenes
+the result is close to the original image. Scene cards carry a「静态帧」badge in
+the picker.
+
+> **Expected coverage**: **most Scene wallpapers produce a good static frame**
+> (measured ~80%+ on a real library — especially photographic, illustration and
+> animation-screenshot scenes); **a small portion cannot display properly**:
+> pure shader/particle/procedural scenes (no extractable main texture), scenes
+> using exotic texture formats (e.g. BC7), and video-texture-driven animated
+> scenes. Those automatically fall back to the workshop preview image
+> (`preview.jpg`) — expected behaviour, not a defect.
+
+### Scene static frames: how it works
+
+- **Reading**: parses `scene.pkg` (PKGV container + LZ4 entry chains) or a loose
+  `scene.json` directory, locates the main texture starting from the first
+  `image` object in `scene.json` (material / instance texture references), with
+  all remaining `.tex` files ranked by an art-likelihood score (embedded
+  JPEG/PNG payloads score highest; mask/effect/depth/workshop helpers are
+  penalized, R8/RG88 grayscale formats nearly excluded).
+- **Decoding**: TEX containers (TEXV0005/TEXI0001, TEXB0001-4 mipmaps, LZ4 or
+  raw) decode to a static image — **RGBA8888 / R8 / RG88 / DXT1 / DXT3 / DXT5**
+  plus **WE embedded JPEG / PNG textures** (common for photographic scenes;
+  passed through untouched, zero decode, best fidelity).
+- **Quality gate**: decoded frames are sampled — grayscale (>88% gray) or flat
+  (near-zero variance) frames are rejected and the next candidate is tried;
+  when nothing passes the extractor falls back to the project `preview.jpg`,
+  so gray masks/depth maps/solid fills never masquerade as the wallpaper.
+- **Video-texture detection**: WE animation-sync textures (embedded MP4, e.g.
+  `*_sync`) cannot produce a static frame; they are detected and fall back to
+  the preview instead of emitting garbage pixels.
+- **Cache**: results are cached at `~/.dsh-wallpaper-engine/cache/frames/`
+  keyed by `<version>_<path>_<mtime>` (override with `DSH_WE_CACHE_DIR`);
+  workshop updates and extractor upgrades invalidate the frame automatically.
+- **Limits**: BC7 / RGB565 / 16-bit-float textures cannot be decoded (falls
+  back to the project `preview.jpg`); a static frame is not a 3D render —
+  animated particles/water ripples won't appear.
 
 ## How it works
 
@@ -44,6 +80,7 @@ rotation candidates — they cannot be used as a live background here.
      - `GET /wallpaper-engine/inventory` → JSON list of wallpapers
      - `GET /wallpaper-engine/media/<token>` → video / HTML (Range supported)
      - `GET /wallpaper-engine/preview/<token>` → preview image
+     - `GET /wallpaper-engine/scene-frame/<token>` → scene static frame (main texture, JPEG passthrough or PNG, disk-cached)
      - `POST /wallpaper-engine/upload` → upload a custom wallpaper (JPG / PNG / MP4, raw bytes)
      - `POST /wallpaper-engine/remove` → remove an uploaded wallpaper
      - `POST /wallpaper-engine/upload-dir` → change the upload directory (persisted to `~/.dsh-wallpaper-engine/config.json`, migrates existing files)

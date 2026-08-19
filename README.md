@@ -4,30 +4,42 @@
 
 一个 DSH bundle，把你电脑上的 **Wallpaper Engine** 壁纸变成 **DSH 网页界面（`dsh web`）的背景**。
 
-它会自动发现你本机的 Wallpaper Engine 安装，列出你的壁纸，并把其中*可移植*的类型（Video `.mp4` 和 Web/HTML）渲染到 DSH 对话界面的后方，配以 **iOS 风格液态玻璃**效果。v0.2 起还支持：
+它会自动发现你本机的 Wallpaper Engine 安装，列出你的壁纸，并把*可移植*的类型渲染到 DSH 对话界面的后方，配以 **iOS 风格液态玻璃**效果：Video（`.mp4`）动态播放、Web/HTML 以 iframe 加载，**Scene（场景）提取主纹理作为静态帧**。v0.2 起还支持：
 
 - **壁纸选择弹窗**：缩略图网格收纳进独立弹窗，设置页不再被长列表占满；
 - **隐藏 / 恢复**：不想看的壁纸一键隐藏（软删除），随时恢复，不碰源文件；
 - **视频倍速**：0.5x – 2x 六档原生调速，即时生效、不重载；
 - **水平翻转**：镜像画面（视频 / 网页 / 上传图片均适用）；
-- **自定义壁纸**：直接上传本地 JPG / PNG / MP4 当壁纸，可选存储位置与画面适配模式。
+- **自定义壁纸**：直接上传本地 JPG / PNG / MP4 当壁纸，可选存储位置与画面适配模式；
+- **场景壁纸静态帧**（v0.3）：Scene 壁纸提取主纹理作为静态背景，不再只是"不可播放"的占位。
 
 ![基础效果展示](docs/images/showcase.png)
 
 > 壁纸 + 磨砂遮罩 + iOS 液态玻璃，渲染在 DSH 界面后方。
 
-## 为什么只支持 Video 和 Web 壁纸？
+## 支持哪些壁纸类型？
 
 Wallpaper Engine 的壁纸分四种类型：
 
 | 类型 | 由谁渲染 | 能否搬到 DSH |
 |---|---|---|
-| **Scene（场景）** | Wallpaper Engine 自带的 3D 引擎 | ❌ 不能 — 原生 3D（`.obj`/着色器），只有 WE 能渲染 |
+| **Scene（场景）** | Wallpaper Engine 自带的 3D 引擎 | ✅ 静态帧 — 提取主纹理（`.pkg`/`.json` 内的 .tex/JPEG），见下文 |
 | **Video（视频）** | 就是一个 `.mp4` 文件 | ✅ 能 — 在 `<video>` 标签里播放 |
 | **Web（网页）** | WE 内置的 Chromium 壳（`webwallpaper64.exe`）承载 HTML | ✅ 能 — 在 `<iframe>` 里加载 |
 | **Application（应用）** | 注入的外部窗口 | ❌ 不能 |
 
-这是 mineradio 以及所有第三方 Wallpaper Engine 集成方案都无法回避的同一限制：只有 *Video* 和 *Web* 两种壁纸可移植。Scene 壁纸仍会列在选择器里（标为 `[不可播放]`），让你知道自己有什么，但没办法拿来做动态背景。
+Scene 壁纸的 3D 场景（shader/粒子/几何）本身无法在浏览器里重放，但它的**主纹理**（通常是背景艺术图）可以提取出来作为**静态帧**背景——对摄影类、插画类场景壁纸效果接近原图。选择器里场景卡片带有「静态帧」徽标，可与动态壁纸区分。
+
+> **展现效果**：**大部分场景壁纸都能有较好的静态帧展现**（本机实测约 80%+ 的 Scene 壁纸能提取出接近原图的彩色主图，尤其摄影、插画、动画截图类）；**少部分无法正常展示**，包括纯 shader 粒子/程序生成类场景（没有可提取的主纹理）、使用特殊纹理格式（如 BC7）的场景、以及以视频纹理驱动的动画场景——这类会自动回退显示工坊预览图（`preview.jpg`），属预期行为，不视为缺陷。
+
+### 场景静态帧：怎么工作的
+
+- **读取**：解析 `scene.pkg`（PKGV 容器 + LZ4 条目链）或松散 `scene.json` 目录，从 `scene.json` 的第一个 image 对象出发定位主纹理（material / instance 引用的 .tex），其余 .tex 按"艺术图可能性"评分兜底（内嵌 JPEG/PNG 最高分，mask/effect/depth/workshop 辅助纹理降权，R8/RG88 灰度格式几乎排除）。
+- **解码**：TEX 容器（TEXV0005/TEXI0001、TEXB0001-4 mipmap、LZ4 或原始数据）解码为静态图，支持 **RGBA8888 / R8 / RG88 / DXT1 / DXT3 / DXT5**，以及 **WE 内嵌 JPEG / PNG 纹理**（摄影类壁纸常见，原样直出、零解码、保真度最高）。
+- **质量门**：解码后抽样质检——灰度 >88% 或纯色（方差 <3）的帧会被拒绝并尝试下一候选；全部不通过时自动回退到项目 `preview.jpg`（灰度遮罩、深度图、纯色占位不会冒充壁纸）。
+- **视频纹理识别**：WE 的动画同步纹理（内嵌 MP4，如 `*_sync` 纹理）无法出静态帧，识别后直接回退预览图，不再输出乱码画面。
+- **缓存**：提取结果按 `<版本>_<路径>_<mtime>` 缓存到 `~/.dsh-wallpaper-engine/cache/frames/`（可用 `DSH_WE_CACHE_DIR` 覆盖），工坊更新后自动失效重建；提取管线升级会更换版本前缀使旧缓存失效重提。
+- **限制**：BC7 / RGB565 / 16 位浮点等纹理格式无法解码（回退到 preview.jpg）；静态帧≠3D 渲染，动画粒子/水波等动态效果不会出现。
 
 ## 工作原理
 
@@ -38,6 +50,7 @@ Wallpaper Engine 的壁纸分四种类型：
      - `GET /wallpaper-engine/inventory` → 壁纸 JSON 列表
      - `GET /wallpaper-engine/media/<token>` → 视频 / HTML（支持 Range）
      - `GET /wallpaper-engine/preview/<token>` → 预览图
+     - `GET /wallpaper-engine/scene-frame/<token>` → 场景壁纸静态帧（提取主纹理，JPEG 直出或 PNG，磁盘缓存）
      - `POST /wallpaper-engine/upload` → 上传自定义壁纸（JPG / PNG / MP4，原始字节流）
      - `POST /wallpaper-engine/remove` → 移除已上传的壁纸
      - `POST /wallpaper-engine/upload-dir` → 更改上传目录（持久化到 `~/.dsh-wallpaper-engine/config.json`，自动迁移已有文件）

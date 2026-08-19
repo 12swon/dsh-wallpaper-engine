@@ -2,3 +2,5 @@ node_modules/
 *.log
 *.tgz
 .playwright-mcp/
+.test-cache/
+scene-diagnosis.tsv

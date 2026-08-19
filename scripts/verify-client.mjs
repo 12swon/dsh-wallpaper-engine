@@ -53,7 +53,7 @@ const localStorage = {
     rotationGroupId: 'g1',
     rotationEnabled: true,
     rotationGroups: [
-      { id: 'g1', name: 'My list', interval: 5, order: 'sequence', wallpaperIds: ['a', 'b', 'c'] },
+      { id: 'g1', name: 'My list', interval: 5, order: 'sequence', wallpaperIds: ['a', 'b'] },
     ],
   }) },
   getItem(k) { return this._store[k] ?? null; },
@@ -62,14 +62,19 @@ const localStorage = {
 const fetch = () => Promise.resolve({
   ok: true, status: 200,
   json: () => Promise.resolve({
-    installDir: "D:/we", total: 3, portableCount: 2,
+    installDir: "D:/we", total: 34, portableCount: 33,
     playlists: [
       { id: "p1", name: "Test playlist", order: "sequence", wallpaperIds: ["a", "b", "c"], total: 3, portableCount: 2 },
     ],
     wallpapers: [
+      // 30 synthetic videos force pagination (33 playable cards → 2 pages at 24/page).
+      ...Array.from({ length: 30 }, (_, i) => ({
+        id: "w" + i, title: "Wall " + i, type: "video", playable: true, media: "/wallpaper-engine/media/w" + i, preview: null,
+      })),
       { id: "a", title: "Video A", type: "video", playable: true, media: "/wallpaper-engine/media/xyz", preview: null },
       { id: "b", title: "Video B", type: "video", playable: true, media: "/wallpaper-engine/media/def", preview: null },
-      { id: "c", title: "Scene C", type: "scene", playable: false, media: null, preview: null },
+      { id: "c", title: "Scene C", type: "scene", playable: false, media: null, preview: "/wallpaper-engine/preview/ccc", frameUrl: "/wallpaper-engine/scene-frame/ccc" },
+      { id: "d", title: "Scene D (no frame)", type: "scene", playable: false, media: null, preview: null, frameUrl: null },
     ],
   }),
 });
@@ -162,16 +167,46 @@ setTimeout(() => {
         try { openBtn[0].props.onClick(); } catch (e) { console.log('open modal onClick threw:', e && e.message); }
       }
       try { tree = pickerRenders[0](); } catch (e) { renderError = e && e.message; }
-      const cards = [];
-      (function walk2(node) {
-        if (Array.isArray(node)) { node.forEach(walk2); return; }
-        if (!node || typeof node !== 'object') return;
-        const cls = typeof node.props?.className === 'string' ? node.props.className : '';
-        if (cls === 'we-picker__card' || cls === 'we-picker__card we-picker__card--selected') cards.push(node);
-        if (Array.isArray(node.children)) node.children.forEach(walk2);
-      })(tree);
-      console.log('modal grid cards (expect 3: close + a + b):', cards.length);
-      console.log('scene wallpaper excluded from grid:', !JSON.stringify(cards).includes('Scene C'));
+      const collectCards = (root) => {
+        const cards = [];
+        (function walk2(node) {
+          if (Array.isArray(node)) { node.forEach(walk2); return; }
+          if (!node || typeof node !== 'object') return;
+          const cls = typeof node.props?.className === 'string' ? node.props.className : '';
+          if (cls === 'we-picker__card' || cls === 'we-picker__card we-picker__card--selected') cards.push(node);
+          if (Array.isArray(node.children)) node.children.forEach(walk2);
+        })(root);
+        return cards;
+      };
+      const clickPager = (root, label) => {
+        let hit = null;
+        (function walk(node) {
+          if (Array.isArray(node)) { node.forEach(walk); return; }
+          if (!node || typeof node !== 'object') return;
+          const cls = typeof node.props?.className === 'string' ? node.props.className : '';
+          if (cls.includes('we-picker__btn') && Array.isArray(node.children) && node.children.length === 1 && node.children[0] === label) hit = node;
+          if (Array.isArray(node.children)) node.children.forEach(walk);
+        })(root);
+        if (hit && typeof hit.props.onClick === 'function') { try { hit.props.onClick(); } catch (e) { console.log('pager click threw:', e && e.message); } }
+        return hit;
+      };
+      // Page 1: 33 playable wallpapers → 2 pages @ 24; grid = close card + 24.
+      let cards = collectCards(tree);
+      console.log('page 1 cards (expect 25: close + 24):', cards.length);
+      console.log('pager rendered (pages > 1):', JSON.stringify(tree).includes('we-picker__pager'));
+      const page1Text = JSON.stringify(cards);
+      console.log('page 1 shows first wallpaper (Wall 0):', page1Text.includes('Wall 0'));
+      console.log('page 1 does NOT show page-2 item (Wall 30):', !page1Text.includes('Wall 30'));
+      console.log('scene D (no frameUrl) excluded from grid:', !page1Text.includes('Scene D'));
+      // Flip to page 2 → 33 - 24 = 9 wallpapers + close card = 10.
+      clickPager(tree, '下一页 ›');
+      try { tree = pickerRenders[0](); } catch (e) { renderError = e && e.message; }
+      cards = collectCards(tree);
+      console.log('page 2 cards (expect 10: close + 9):', cards.length);
+      const page2Text = JSON.stringify(cards);
+      console.log('page 2 shows last wallpaper (Wall 29):', page2Text.includes('Wall 29'));
+      console.log('page 2 no longer shows page-1 item (Wall 0):', !page2Text.includes('Wall 0'));
+      console.log('scene C (frameUrl) in grid:', page2Text.includes('Scene C'));
     }
   }
   console.log('effects ran:', effects.length);
