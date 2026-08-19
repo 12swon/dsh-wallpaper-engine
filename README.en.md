@@ -275,11 +275,14 @@ skin-center design):
 > With the master switch on, **every native section** (General / Models /
 > Plugins / …) and the left nav become one liquid-glass + accent look — the
 > plugin overrides the shell tokens scoped to the settings dialog, so nothing
-> outside the window is touched. Higher transparency lets the wallpaper colour
-> show through the panels more clearly; lower values approach solid. Browsers
-> without `backdrop-filter` automatically fall back to a high-opacity solid so
-> text stays readable. All controls apply instantly and persist in
-> `localStorage`.
+> outside the window is touched. The settings-window glass blur uses the SAME
+> adjustment range as the conversation bar: the **玻璃** (glass) slider (0–40 px)
+> drives the blur radius of both the settings window and the composer/bubbles,
+> with an identical saturation/brightness/contrast recipe; the **玻璃透明度**
+> control sets the transparency — higher lets the wallpaper colour show through
+> more clearly, lower approaches solid. Browsers without `backdrop-filter`
+> automatically fall back to a high-opacity solid so text stays readable. All
+> controls apply instantly and persist in `localStorage`.
 
 ### The four sliders
 
