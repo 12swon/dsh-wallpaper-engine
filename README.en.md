@@ -242,6 +242,14 @@ mirroring Wallpaper Engine's conservative first-run stance.
   (animation is disabled under `prefers-reduced-motion`). A small record also
   sits in the picker modal head. The vinyl shows in **both** card styles.
 
+![Compact wallpaper library (CD-rack layout)](docs/images/compact-wallpaper-library.png)
+
+> Compact layout: the CD-rack stacked grid, hover scales the card to the front, everything on one page.
+
+![Rotating vinyl record](docs/images/vinyl-record.gif)
+
+> Vinyl record: the selected wallpaper's cover as the record label, spinning while playing, stopped on pause.
+
 ### Playback speed & horizontal flip
 
 With a video wallpaper selected, the **壁纸效果** area shows the **倍速** presets (0.5x / 0.75x / 1x / 1.25x / 1.5x / 2x) — driven by the browser's native `playbackRate`, instant, no reload or black flash (wallpaper videos are muted, so there is no audio to keep in sync). The **水平翻转** toggle mirrors the image via CSS `scaleX(-1)` — it works for video, web, and uploaded images/videos alike, with zero main-thread cost.
@@ -288,6 +296,10 @@ skin-center design):
 > lower approaches solid. Browsers without `backdrop-filter` automatically fall
 > back to a high-opacity solid so text stays readable. All controls apply
 > instantly and persist in `localStorage`.
+
+![Liquid-glass settings window](docs/images/liquid-glass-window.png)
+
+> Liquid glass: the whole settings window unified as glass, following accent, glass color and glass transparency.
 
 ### The four sliders
 
