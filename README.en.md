@@ -15,6 +15,7 @@ It discovers the Wallpaper Engine install on your machine, lists its wallpapers,
 - **Liquid-glass settings page** (v0.3.1) — the settings UI is now a **first-level settings page** (following the dsh-web-ui-all skin-center design): the whole page is a customizable liquid-glass card with **accent color** (6 presets + a custom color picker) and **glass transparency** (0–60%). Both apply instantly and persist.
 - **Whole-settings-window liquid glass** (v0.3.2) — one click turns the **entire native DSH settings window** (dialog + left nav + ALL native sections: General / Models / Plugins / …) into liquid glass with your custom accent + transparency. With the「设置窗口液态玻璃」master switch on, the window background, nav active/hover, buttons, switches and links all follow the chosen accent and transparency; off restores the stock look.
 - **Unified glass tuning** (v0.3.3–v0.3.5) — the settings-window glass blur shares the SAME adjustment as the conversation bar: the **玻璃** (glass) slider (0–60 px) drives the blur radius of both the settings window and the composer/bubbles, with an identical saturation/brightness/contrast recipe. A new **玻璃颜色** (glass color) control lets you tint the glass BASE itself (6 presets + custom picker; defaults white in light / deep navy in dark; once picked, both themes use that color) — **配色** styles the interactive elements, **玻璃颜色** styles the glass itself.
+- **Settings persisted to a host file** (v0.4.0) — all settings (selected wallpaper, accent, transparency, layout, rotation, hidden, speed/flip, …) are now stored in `~/.dsh-wallpaper-engine/config.json` instead of browser localStorage, so they survive restarts, port changes (including DSH Desktop's random `--port 0` loopback port), browser-data clears and browser switches. Legacy localStorage config is migrated automatically on first launch.
 
 ![Wallpaper showcase](docs/images/showcase.png)
 
@@ -87,6 +88,8 @@ the picker.
      - `POST /wallpaper-engine/upload` → upload a custom wallpaper (JPG / PNG / MP4, raw bytes)
      - `POST /wallpaper-engine/remove` → remove an uploaded wallpaper
      - `POST /wallpaper-engine/upload-dir` → change the upload directory (persisted to `~/.dsh-wallpaper-engine/config.json`, migrates existing files)
+     - `GET /wallpaper-engine/settings` → read plugin settings (v0.4.0)
+     - `PUT /wallpaper-engine/settings` → save plugin settings (v0.4.0, written to `~/.dsh-wallpaper-engine/config.json`)
 - **Client half** (`lib/client.js`): a browser module that fetches the inventory
   and renders the selected wallpaper into a fixed layer *behind* the app columns,
   plus a **first-level settings page** "Wallpaper Engine" (liquid-glass card,
@@ -96,6 +99,33 @@ the picker.
   directory (default `~/.dsh-wallpaper-engine/uploads`, changeable from the
   settings UI) and served through the same `/media` + `/preview` routes as WE
   media — identical pipeline, survives restarts, no browser quota limits.
+
+## Settings persistence (v0.4.0)
+
+**All your settings (selected wallpaper, colors, transparency, layout, rotation,
+hidden wallpapers, playback speed / flip, …) are stored in a host-side file
+since v0.4.0 — no longer in browser localStorage.**
+
+- **Where**: `~/.dsh-wallpaper-engine/config.json` (the same file that stores
+  the upload-directory preference). Concrete locations:
+  - Windows: `C:\Users\<your-user>\.dsh-wallpaper-engine\config.json`
+  - WSL / Linux / macOS: `~/.dsh-wallpaper-engine/config.json`
+- **Why**: settings used to live in browser localStorage, which is isolated by
+  *origin* (scheme + host + **port**). DSH Desktop starts the harness on a
+  **random port every launch**, so each start looked like a brand-new storage
+  space and every setting fell back to defaults (plain web on a fixed port was
+  unaffected). Storing on the host makes persistence port-independent.
+- **What you get**: settings survive restarts, port changes, browser-data
+  clears, browser switches and private windows.
+- **Migration**: config saved by older versions in localStorage is **migrated
+  automatically on first launch** — nothing to do.
+- **Behavior change to know**: on one machine, multiple browsers (e.g. Chrome
+  and Edge) or devices pointing at the same dsh now **share one configuration**
+  (previously each had its own). If you roll back to an older version, it still
+  reads the localStorage cache copy, so nothing is lost.
+- **Writes**: every settings change is persisted automatically (debounced
+  200 ms); if the file is corrupted the plugin falls back to defaults and does
+  not overwrite your file.
 
 ## Install
 

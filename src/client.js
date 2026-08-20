@@ -36,6 +36,12 @@ const React = require("react");
 const ReactDOM = require("react-dom");
 
 const SETTINGS_KEY = "dsh-wallpaper-engine:selection";
+// Host-sourced settings: the same-origin route the browser half uses to read
+// and write its persisted settings. The host stores them in a plain file
+// (~/.dsh-wallpaper-engine/config.json), which is PORT-INDEPENDENT — unlike
+// localStorage, which is origin-scoped and therefore reset whenever DSH
+// Desktop restarts on a new random --port 0 loopback port.
+const SETTINGS_URL = "/wallpaper-engine/settings";
 const INVENTORY_URL = "/wallpaper-engine/inventory";
 // Body attribute set while a wallpaper is active; CSS uses it to make the frame
 // background transparent so the behind-body layer shows through.
@@ -160,40 +166,47 @@ function readRotationGroups(raw) {
   return groups;
 }
 
+// Shared settings sanitizer: used by readPersisted() (localStorage cache) and
+// by loadPersisted() (host /wallpaper-engine/settings). The host half keeps a
+// mirror (lib/index.js sanitizeSettings) — keep the two in sync.
+function sanitizeSettings(o) {
+  if (!o || typeof o !== "object") return { id: "", ...DEFAULTS };
+  return {
+    id: typeof o.id === "string" ? o.id : "",
+    scrim: clampNum(o.scrim, 0, 1, DEFAULTS.scrim),
+    border: clampNum(o.border, 0, 1, DEFAULTS.border),
+    blur: clampNum(o.blur, 0, 60, DEFAULTS.blur),
+    wallpaperBlur: clampNum(o.wallpaperBlur, 0, 60, DEFAULTS.wallpaperBlur),
+    rotationEnabled: o.rotationEnabled === true,
+    rotationGroupId: typeof o.rotationGroupId === "string" ? o.rotationGroupId : "",
+    rotationGroups: readRotationGroups(o.rotationGroups),
+    rotationSeeded: o.rotationSeeded === true,
+    hiddenIds: Array.isArray(o.hiddenIds)
+      ? o.hiddenIds.filter((x) => typeof x === "string" && x)
+      : [],
+    playbackRate: clampNum(o.playbackRate, 0.5, 2, DEFAULTS.playbackRate),
+    flip: o.flip === true,
+    objectFit: ["cover", "contain", "center", "fill"].includes(o.objectFit)
+      ? o.objectFit : DEFAULTS.objectFit,
+    contentRatingFilter: RATING_VALUES.includes(o.contentRatingFilter)
+      ? o.contentRatingFilter : DEFAULTS.contentRatingFilter,
+    typeFilter: TYPE_VALUES.includes(o.typeFilter)
+      ? o.typeFilter : DEFAULTS.typeFilter,
+    pickerLayout: o.pickerLayout === "classic" ? "classic" : "fixed",
+    accent: typeof o.accent === "string" && /^#[0-9a-f]{6}$/i.test(o.accent)
+      ? o.accent : DEFAULTS.accent,
+    glassAlpha: clampNum(o.glassAlpha, 0, 60, DEFAULTS.glassAlpha),
+    glassColor: typeof o.glassColor === "string" && /^#[0-9a-f]{6}$/i.test(o.glassColor)
+      ? o.glassColor : DEFAULTS.glassColor,
+    glassWindow: o.glassWindow !== false,
+  };
+}
+
 function readPersisted() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { id: "", ...DEFAULTS };
-    const o = JSON.parse(raw);
-    return {
-      id: typeof o.id === "string" ? o.id : "",
-      scrim: clampNum(o.scrim, 0, 1, DEFAULTS.scrim),
-      border: clampNum(o.border, 0, 1, DEFAULTS.border),
-      blur: clampNum(o.blur, 0, 60, DEFAULTS.blur),
-      wallpaperBlur: clampNum(o.wallpaperBlur, 0, 60, DEFAULTS.wallpaperBlur),
-      rotationEnabled: o.rotationEnabled === true,
-      rotationGroupId: typeof o.rotationGroupId === "string" ? o.rotationGroupId : "",
-      rotationGroups: readRotationGroups(o.rotationGroups),
-      rotationSeeded: o.rotationSeeded === true,
-      hiddenIds: Array.isArray(o.hiddenIds)
-        ? o.hiddenIds.filter((x) => typeof x === "string" && x)
-        : [],
-      playbackRate: clampNum(o.playbackRate, 0.5, 2, DEFAULTS.playbackRate),
-      flip: o.flip === true,
-      objectFit: ["cover", "contain", "center", "fill"].includes(o.objectFit)
-        ? o.objectFit : DEFAULTS.objectFit,
-      contentRatingFilter: RATING_VALUES.includes(o.contentRatingFilter)
-        ? o.contentRatingFilter : DEFAULTS.contentRatingFilter,
-      typeFilter: TYPE_VALUES.includes(o.typeFilter)
-        ? o.typeFilter : DEFAULTS.typeFilter,
-      pickerLayout: o.pickerLayout === "classic" ? "classic" : "fixed",
-      accent: typeof o.accent === "string" && /^#[0-9a-f]{6}$/i.test(o.accent)
-        ? o.accent : DEFAULTS.accent,
-      glassAlpha: clampNum(o.glassAlpha, 0, 60, DEFAULTS.glassAlpha),
-      glassColor: typeof o.glassColor === "string" && /^#[0-9a-f]{6}$/i.test(o.glassColor)
-        ? o.glassColor : DEFAULTS.glassColor,
-      glassWindow: o.glassWindow !== false,
-    };
+    return sanitizeSettings(JSON.parse(raw));
   } catch {
     return { id: "", ...DEFAULTS };
   }
@@ -245,31 +258,112 @@ function useStore() {
   return selection;
 }
 
+// Whitelist serialization of the persisted settings (the ONLY fields the host
+// file and the localStorage cache carry).
+function serializeSelection() {
+  return {
+    id: selection.id,
+    scrim: selection.scrim,
+    border: selection.border,
+    blur: selection.blur,
+    wallpaperBlur: selection.wallpaperBlur,
+    rotationEnabled: selection.rotationEnabled,
+    rotationGroupId: selection.rotationGroupId,
+    rotationGroups: selection.rotationGroups,
+    rotationSeeded: selection.rotationSeeded,
+    hiddenIds: selection.hiddenIds,
+    playbackRate: selection.playbackRate,
+    flip: selection.flip,
+    objectFit: selection.objectFit,
+    contentRatingFilter: selection.contentRatingFilter,
+    typeFilter: selection.typeFilter,
+    pickerLayout: selection.pickerLayout,
+    accent: selection.accent,
+    glassAlpha: selection.glassAlpha,
+    glassColor: selection.glassColor,
+    glassWindow: selection.glassWindow,
+  };
+}
+
+// Host persistence: debounced PUT to /wallpaper-engine/settings (same origin;
+// the host writes ~/.dsh-wallpaper-engine/config.json — port-independent).
+// localStorage stays a synchronous cache + migration source + rollback, never
+// the source of truth. Timers go through window.* (guarded) like the rotation
+// timer below, so headless verify environments without a timer facility fall
+// back to an immediate write.
+let persistTimer = null;
+function schedulePersist() {
+  if (persistTimer) return;
+  if (typeof window === "undefined" || typeof window.setTimeout !== "function") {
+    pushPersisted();
+    return;
+  }
+  persistTimer = window.setTimeout(() => { persistTimer = null; pushPersisted(); }, 200);
+}
+
+async function pushPersisted() {
+  try {
+    await fetch(SETTINGS_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(serializeSelection()),
+      keepalive: true, // let a pending flush survive pagehide/close
+    });
+  } catch { /* host unreachable: the localStorage cache remains the fallback */ }
+}
+
+// Flush a pending write when the page goes away (tab close / navigate).
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("pagehide", () => {
+    if (persistTimer && typeof window.clearTimeout === "function") {
+      window.clearTimeout(persistTimer);
+      persistTimer = null;
+      pushPersisted();
+    }
+  });
+}
+
 function persistSelection() {
   try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-      id: selection.id,
-      scrim: selection.scrim,
-      border: selection.border,
-      blur: selection.blur,
-      wallpaperBlur: selection.wallpaperBlur,
-      rotationEnabled: selection.rotationEnabled,
-      rotationGroupId: selection.rotationGroupId,
-      rotationGroups: selection.rotationGroups,
-      rotationSeeded: selection.rotationSeeded,
-      hiddenIds: selection.hiddenIds,
-      playbackRate: selection.playbackRate,
-      flip: selection.flip,
-      objectFit: selection.objectFit,
-      contentRatingFilter: selection.contentRatingFilter,
-      typeFilter: selection.typeFilter,
-      pickerLayout: selection.pickerLayout,
-      accent: selection.accent,
-      glassAlpha: selection.glassAlpha,
-      glassColor: selection.glassColor,
-      glassWindow: selection.glassWindow,
-    }));
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(serializeSelection()));
   } catch { /* ignore */ }
+  schedulePersist();
+}
+
+// ── Host-sourced settings (load once at startup) ────────────────────────────
+// GET /wallpaper-engine/settings: the host file is the source of truth (it
+// survives DSH Desktop's random --port 0 restarts and browser data clears;
+// localStorage is origin-scoped). Migration: when the host has nothing yet but
+// localStorage does, upload it once so the host becomes the truth. On any host
+// failure fall back to localStorage so a plain web load keeps working.
+async function loadPersisted() {
+  let hostSettings = null;
+  let hostOk = false;
+  try {
+    const res = await fetch(SETTINGS_URL, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      hostSettings = data && data.settings;
+      hostOk = true;
+    }
+  } catch { /* host unreachable */ }
+
+  if (hostOk && hostSettings && typeof hostSettings === "object") {
+    // Host is the truth: apply it and refresh the local cache copy.
+    Object.assign(selection, sanitizeSettings(hostSettings));
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(serializeSelection())); } catch { /* ignore */ }
+  } else if (hostOk) {
+    // Host has nothing saved yet: migrate any existing localStorage data once.
+    const local = localStorage.getItem(SETTINGS_KEY);
+    Object.assign(selection, local ? sanitizeSettings(JSON.parse(local)) : { id: "", ...DEFAULTS });
+    if (local) pushPersisted();
+  } else {
+    // Host unreachable (route missing / static load): localStorage fallback.
+    Object.assign(selection, readPersisted());
+  }
+
+  applyEffects();
+  emit();
 }
 
 async function loadInventory() {
@@ -2637,7 +2731,10 @@ function apply(ctx) {
     );
   }
 
-  loadInventory();
+  // Settings first (host file, port-independent), then inventory — so the
+  // selection restore inside loadInventory()'s revalidateSelection() sees the
+  // persisted id and can resolve its media URL.
+  loadPersisted().then(loadInventory);
 }
 
 exports.apply = apply;
