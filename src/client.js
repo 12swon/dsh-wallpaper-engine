@@ -106,6 +106,10 @@ const DEFAULTS = {
   glassAlpha: 12,
   glassColor: "#ffffff",
   glassWindow: true,
+  // 对话文本颜色：聊天区文字自定义色 (#rrggbb)；chatTextEnabled 控制总开关。
+  // 独立于壁纸与设置窗口，开启后用 --we-chat-text-color 覆写聊天文本色。
+  chatTextColor: "#e8e8ea",
+  chatTextEnabled: false,
 };
 
 // Selectable values for the two filters. Declared up top because
@@ -199,6 +203,9 @@ function sanitizeSettings(o) {
     glassColor: typeof o.glassColor === "string" && /^#[0-9a-f]{6}$/i.test(o.glassColor)
       ? o.glassColor : DEFAULTS.glassColor,
     glassWindow: o.glassWindow !== false,
+    chatTextColor: typeof o.chatTextColor === "string" && /^#[0-9a-f]{6}$/i.test(o.chatTextColor)
+      ? o.chatTextColor : DEFAULTS.chatTextColor,
+    chatTextEnabled: o.chatTextEnabled === true,
   };
 }
 
@@ -966,6 +973,17 @@ function applyEffects() {
   if (selection.glassWindow) document.body.setAttribute("data-we-glass-window", "on");
   else document.body.removeAttribute("data-we-glass-window");
 
+  // 自定义对话文本颜色 (chatTextEnabled): 打开后用 --we-chat-text-color 覆写
+  // 聊天文本色；关闭则移除属性与变量，恢复 DSH 默认文本色。作用域由
+  // body[data-we-chat-text] 限定，独立于壁纸与设置窗口。
+  if (selection.chatTextEnabled) {
+    document.body.setAttribute("data-we-chat-text", "on");
+    document.body.style.setProperty("--we-chat-text-color", selection.chatTextColor);
+  } else {
+    document.body.removeAttribute("data-we-chat-text");
+    document.body.style.removeProperty("--we-chat-text-color");
+  }
+
   // Scrim immediacy: some composited/kiosk environments do not repaint a
   // z-index:-1 layer promptly when only an inherited CSS variable changes.
   // Write the resolved color DIRECTLY onto the scrim element's inline style and
@@ -996,6 +1014,8 @@ function clearEffects() {
   s.removeProperty("--we-glass-alpha");
   s.removeProperty("--we-glass-color");
   document.body.removeAttribute("data-we-glass-window");
+  document.body.removeAttribute("data-we-chat-text");
+  document.body.style.removeProperty("--we-chat-text-color");
   const scrim = document.getElementById(SCRIM_ID);
   if (scrim) scrim.style.background = "";
 }
@@ -1143,6 +1163,12 @@ function WallpaperPicker() {
   };
   const onGlassAlpha = (pct) => {
     selection.glassAlpha = clampNum(pct, 0, 60, DEFAULTS.glassAlpha);
+    persistSelection(); applyEffects(); emit();
+  };
+  // 自定义对话文本色: 仅接受 #rrggbb，写入 selection 后即时生效并持久化。
+  const onChatTextColor = (hex) => {
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+    selection.chatTextColor = hex;
     persistSelection(); applyEffects(); emit();
   };
 
@@ -1315,6 +1341,36 @@ function WallpaperPicker() {
       ),
       React.createElement("span", { className: "we-picker__hint" },
         "整个设置窗口（含 General / 模型 / 插件等全部原生分区）跟随配色与透明度；关闭则恢复原生样式",
+      ),
+      // 对话文本颜色: 独立总开关 + 取色器。开启后用自定义色覆写聊天区对话文字
+      // (markdown / 行内代码 / 思考块+标题)，不影响侧边栏、设置窗口或输入框；
+      // 关闭则恢复 DSH 默认文本色。与壁纸白字规则共存，自定义色优先级更高。
+      React.createElement("label", { className: "we-picker__rotation-toggle we-picker__window-toggle" },
+        React.createElement("input", {
+          type: "checkbox",
+          checked: sel.chatTextEnabled,
+          onChange: (e) => {
+            selection.chatTextEnabled = e.target.checked;
+            persistSelection();
+            applyEffects();
+            emit();
+          },
+        }),
+        "启用自定义对话文本色",
+      ),
+      React.createElement("div", { className: "we-picker__row we-picker__accent-row" },
+        React.createElement("span", { className: "we-picker__hint we-picker__label" }, "文本色"),
+        React.createElement("label", { className: "we-picker__swatch-custom" },
+          React.createElement("input", {
+            type: "color",
+            value: sel.chatTextColor,
+            disabled: !sel.chatTextEnabled,
+            onInput: (e) => onChatTextColor(e.target.value),
+            onChange: (e) => onChatTextColor(e.target.value),
+            title: "自定义对话文本色",
+          }),
+          React.createElement("span", { className: "we-picker__hint" }, "自定义"),
+        ),
       ),
     ),
     // ── Card-style switch: classic (WE's original aspect-ratio 16/9 cards —
@@ -2680,6 +2736,43 @@ const CSS = `
     position: absolute; top: 4px; left: 4px; width: 18px; height: 18px;
     border-radius: 4px; background: rgba(0, 0, 0, 0.55); color: #fff;
     font-size: 12px; line-height: 18px; text-align: center;
+  }
+
+  /* ── DSH text readability over wallpaper ─────────────────────────────
+     When a wallpaper is active, force high-contrast text + a soft shadow
+     on the chat markdown, thinking block, and thinking headers so they
+     remain legible on busy/bright backgrounds. (Added by DeepSeek's edit.)
+     Scoped to body[data-we-wallpaper] so it only applies with a wallpaper on. */
+  body[data-we-wallpaper] ._markdown_1nba0_5,
+  body[data-we-wallpaper] ._markdown_1nba0_5 strong,
+  body[data-we-wallpaper] ._markdown_1nba0_5 :not(pre)>code,
+  body[data-we-wallpaper] .o3BgMG_summary,
+  body[data-we-wallpaper] ._title_9cl6j_64,
+  body[data-we-wallpaper] .o3BgMG_title,
+  body[data-we-wallpaper] .QWLzlG_summary {
+    color: #ffffff !important;
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.9),
+      0 0 6px rgba(0, 0, 0, 0.65) !important;
+  }
+  body[data-we-wallpaper] ._markdown_1nba0_5 :not(pre)>code {
+    background: rgba(0, 0, 0, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  }
+
+  /* ── 自定义对话文本颜色 (独立开关, 不依赖壁纸).
+     Scoped to body[data-we-chat-text] and uses [class*="markdown"] so it
+     survives DSH frontend rebuilds (the markdown class hash changes per
+     build). Covers chat markdown, inline code, thinking block + headers.
+     Placed AFTER the wallpaper rule so a user-chosen color wins when both
+     the wallpaper and the custom-color switch are on. (Added by assistant.) */
+  body[data-we-chat-text] [class*="markdown"],
+  body[data-we-chat-text] [class*="markdown"] :not(pre) > code,
+  body[data-we-chat-text] .o3BgMG_summary,
+  body[data-we-chat-text] ._title_9cl6j_64,
+  body[data-we-chat-text] .o3BgMG_title,
+  body[data-we-chat-text] .QWLzlG_summary {
+    color: var(--we-chat-text-color, inherit) !important;
   }
 `;
 
