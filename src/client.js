@@ -110,6 +110,10 @@ const DEFAULTS = {
   // 独立于壁纸与设置窗口，开启后用 --we-chat-text-color 覆写聊天文本色。
   chatTextColor: "#e8e8ea",
   chatTextEnabled: false,
+  // 菜单文本颜色：侧边栏/顶栏/导航等全局菜单文字自定义色 (#rrggbb)；
+  // menuTextEnabled 控制总开关。开启后覆写 DSH 原生 --dsw-alias-label-* token。
+  menuTextColor: "#e8e8ea",
+  menuTextEnabled: false,
 };
 
 // Selectable values for the two filters. Declared up top because
@@ -206,6 +210,9 @@ function sanitizeSettings(o) {
     chatTextColor: typeof o.chatTextColor === "string" && /^#[0-9a-f]{6}$/i.test(o.chatTextColor)
       ? o.chatTextColor : DEFAULTS.chatTextColor,
     chatTextEnabled: o.chatTextEnabled === true,
+    menuTextColor: typeof o.menuTextColor === "string" && /^#[0-9a-f]{6}$/i.test(o.menuTextColor)
+      ? o.menuTextColor : DEFAULTS.menuTextColor,
+    menuTextEnabled: o.menuTextEnabled === true,
   };
 }
 
@@ -984,6 +991,17 @@ function applyEffects() {
     document.body.style.removeProperty("--we-chat-text-color");
   }
 
+  // 自定义菜单文本颜色 (menuTextEnabled): 打开后覆写 DSH 原生
+  // --dsw-alias-label-* 系列 token（侧边栏/顶栏/导航/按钮等全局文字），
+  // 通过 body[data-we-menu-text] 限定；关闭则恢复 DSH 默认文本色。
+  if (selection.menuTextEnabled) {
+    document.body.setAttribute("data-we-menu-text", "on");
+    document.body.style.setProperty("--we-menu-text-color", selection.menuTextColor);
+  } else {
+    document.body.removeAttribute("data-we-menu-text");
+    document.body.style.removeProperty("--we-menu-text-color");
+  }
+
   // Scrim immediacy: some composited/kiosk environments do not repaint a
   // z-index:-1 layer promptly when only an inherited CSS variable changes.
   // Write the resolved color DIRECTLY onto the scrim element's inline style and
@@ -1016,6 +1034,8 @@ function clearEffects() {
   document.body.removeAttribute("data-we-glass-window");
   document.body.removeAttribute("data-we-chat-text");
   document.body.style.removeProperty("--we-chat-text-color");
+  document.body.removeAttribute("data-we-menu-text");
+  document.body.style.removeProperty("--we-menu-text-color");
   const scrim = document.getElementById(SCRIM_ID);
   if (scrim) scrim.style.background = "";
 }
@@ -1171,6 +1191,14 @@ function WallpaperPicker() {
     selection.chatTextColor = hex;
     persistSelection(); applyEffects(); emit();
   };
+  // 自定义菜单文本色: 仅接受 #rrggbb，写入 selection 后即时生效并持久化。
+  const onMenuTextColor = (hex) => {
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+    selection.menuTextColor = hex;
+    persistSelection(); applyEffects(); emit();
+  };
+  // 文本颜色分区折叠状态 (仅本地 UI 状态)。
+  const [textColorOpen, setTextColorOpen] = React.useState(false);
 
   // Close the picker modal (ESC / backdrop / close buttons share this path).
   const closePicker = () => {
@@ -1342,34 +1370,78 @@ function WallpaperPicker() {
       React.createElement("span", { className: "we-picker__hint" },
         "整个设置窗口（含 General / 模型 / 插件等全部原生分区）跟随配色与透明度；关闭则恢复原生样式",
       ),
-      // 对话文本颜色: 独立总开关 + 取色器。开启后用自定义色覆写聊天区对话文字
-      // (markdown / 行内代码 / 思考块+标题)，不影响侧边栏、设置窗口或输入框；
-      // 关闭则恢复 DSH 默认文本色。与壁纸白字规则共存，自定义色优先级更高。
-      React.createElement("label", { className: "we-picker__rotation-toggle we-picker__window-toggle" },
-        React.createElement("input", {
-          type: "checkbox",
-          checked: sel.chatTextEnabled,
-          onChange: (e) => {
-            selection.chatTextEnabled = e.target.checked;
-            persistSelection();
-            applyEffects();
-            emit();
-          },
-        }),
-        "启用自定义对话文本色",
+    ),
+    // ── 文本颜色折叠分区: 收纳「对话区文本色」与「菜单/全局文本色」两个子项，
+    //    点击分区标题展开/收起，避免设置面板过长。 (Added by assistant.) ──
+    React.createElement("div", { className: "we-picker__section we-picker__section--collapsible" },
+      React.createElement("div", {
+        className: "we-picker__section-head we-picker__section-head--toggle",
+        role: "button", tabIndex: 0,
+        "aria-expanded": textColorOpen ? "true" : "false",
+        onClick: () => setTextColorOpen(!textColorOpen),
+        onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTextColorOpen(!textColorOpen); } },
+      },
+        React.createElement("span", { className: "we-picker__chevron" + (textColorOpen ? " we-picker__chevron--open" : "") }, "▸"),
+        React.createElement("span", { className: "we-picker__section-label" }, "文本颜色"),
       ),
-      React.createElement("div", { className: "we-picker__row we-picker__accent-row" },
-        React.createElement("span", { className: "we-picker__hint we-picker__label" }, "文本色"),
-        React.createElement("label", { className: "we-picker__swatch-custom" },
+      textColorOpen && React.createElement("div", { className: "we-picker__section-body" },
+        // 子项 1: 对话区文本色。仅作用于聊天区对话文字 (markdown / 行内代码 /
+        // 思考块+标题)，不影响侧边栏、设置窗口或输入框。
+        React.createElement("label", { className: "we-picker__rotation-toggle we-picker__window-toggle" },
           React.createElement("input", {
-            type: "color",
-            value: sel.chatTextColor,
-            disabled: !sel.chatTextEnabled,
-            onInput: (e) => onChatTextColor(e.target.value),
-            onChange: (e) => onChatTextColor(e.target.value),
-            title: "自定义对话文本色",
+            type: "checkbox",
+            checked: sel.chatTextEnabled,
+            onChange: (e) => {
+              selection.chatTextEnabled = e.target.checked;
+              persistSelection();
+              applyEffects();
+              emit();
+            },
           }),
-          React.createElement("span", { className: "we-picker__hint" }, "自定义"),
+          "启用自定义对话文本色",
+        ),
+        React.createElement("div", { className: "we-picker__row we-picker__accent-row" },
+          React.createElement("span", { className: "we-picker__hint we-picker__label" }, "对话文本色"),
+          React.createElement("label", { className: "we-picker__swatch-custom" },
+            React.createElement("input", {
+              type: "color",
+              value: sel.chatTextColor,
+              disabled: !sel.chatTextEnabled,
+              onInput: (e) => onChatTextColor(e.target.value),
+              onChange: (e) => onChatTextColor(e.target.value),
+              title: "自定义对话文本色",
+            }),
+            React.createElement("span", { className: "we-picker__hint" }, "自定义"),
+          ),
+        ),
+        // 子项 2: 菜单/全局文本色。覆写 DSH 原生 --dsw-alias-label-* token，
+        // 侧边栏/顶栏/导航/按钮等全局文字一起变色；关闭则恢复 DSH 默认。
+        React.createElement("label", { className: "we-picker__rotation-toggle we-picker__window-toggle" },
+          React.createElement("input", {
+            type: "checkbox",
+            checked: sel.menuTextEnabled,
+            onChange: (e) => {
+              selection.menuTextEnabled = e.target.checked;
+              persistSelection();
+              applyEffects();
+              emit();
+            },
+          }),
+          "启用自定义菜单文本色",
+        ),
+        React.createElement("div", { className: "we-picker__row we-picker__accent-row" },
+          React.createElement("span", { className: "we-picker__hint we-picker__label" }, "菜单文本色"),
+          React.createElement("label", { className: "we-picker__swatch-custom" },
+            React.createElement("input", {
+              type: "color",
+              value: sel.menuTextColor,
+              disabled: !sel.menuTextEnabled,
+              onInput: (e) => onMenuTextColor(e.target.value),
+              onChange: (e) => onMenuTextColor(e.target.value),
+              title: "自定义菜单文本色",
+            }),
+            React.createElement("span", { className: "we-picker__hint" }, "自定义"),
+          ),
         ),
       ),
     ),
@@ -2317,6 +2389,25 @@ const CSS = `
     font-size: 0.75em; font-weight: 500; opacity: 0.55;
     letter-spacing: 0.01em;
   }
+  /* ── 折叠分区 (文本颜色): 可点击标题 + 展开箭头。 (Added by assistant.) ── */
+  .we-picker__section-head--toggle {
+    cursor: pointer; user-select: none; gap: 6px;
+    padding: 2px 0; border-radius: 6px;
+  }
+  .we-picker__section-head--toggle:hover { opacity: 0.85; }
+  .we-picker__section-head--toggle:focus-visible { outline: 1px solid var(--we-accent, #6b8afd); }
+  .we-picker__chevron {
+    display: inline-block; font-size: 0.7em; line-height: 1;
+    transition: transform 0.15s ease; transform: rotate(0deg);
+  }
+  .we-picker__chevron--open { transform: rotate(90deg); }
+  .we-picker__section--collapsible { gap: 6px; }
+  .we-picker__section-body {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 8px 0 2px 14px;
+    border-left: 2px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.22));
+    margin-left: 4px;
+  }
 
   /* ── Vinyl record (黑胶唱片): rotating disc with the selected wallpaper's
      cover as the label. Spins while the wallpaper is playing; pauses
@@ -2773,6 +2864,23 @@ const CSS = `
   body[data-we-chat-text] .o3BgMG_title,
   body[data-we-chat-text] .QWLzlG_summary {
     color: var(--we-chat-text-color, inherit) !important;
+  }
+
+  /* ── 自定义菜单/全局文本颜色 (独立开关, 整站 token 覆写).
+     DSH 外壳的菜单/侧边栏/顶栏/导航/按钮文字均由 --dsw-alias-label-* 系列
+     token 着色 (primary/secondary/tertiary/dimmed)。开启 menuTextEnabled 后
+     用 body[data-we-menu-text] 把这些 token 全部重定向到 --we-menu-text-color，
+     实现侧边栏等全局文字统一变色；同时覆盖 :hover 态避免回弹。关闭则恢复
+     DSH 默认文本色。 (Added by assistant.) */
+  body[data-we-menu-text] {
+    --dsw-alias-label-primary: var(--we-menu-text-color, inherit);
+    --dsw-alias-label-secondary: var(--we-menu-text-color, inherit);
+    --dsw-alias-label-tertiary: var(--we-menu-text-color, inherit);
+    --dsw-alias-label-dimmed: var(--we-menu-text-color, inherit);
+  }
+  body[data-we-menu-text] [class*="hover"]:hover,
+  body[data-we-menu-text] *:hover {
+    color: var(--we-menu-text-color, inherit) !important;
   }
 `;
 
